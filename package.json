@@ -4,17 +4,22 @@
     "description": "Stream Deck Dev Workflow plugin — settings as code",
     "scripts": {
         "build": "rollup -c",
-        "watch": "rollup -c --watch"
+        "watch": "rollup -c --watch",
+        "typecheck": "tsc --noEmit",
+        "lint": "eslint src/"
     },
     "devDependencies": {
         "@elgato/streamdeck": "latest",
+        "@eslint/js": "^9.0.0",
         "@rollup/plugin-commonjs": "^29.0.3",
         "@rollup/plugin-node-resolve": "^16.0.3",
         "@rollup/plugin-typescript": "latest",
         "@types/node": "^26.1.0",
+        "eslint": "^9.39.4",
         "rollup": "latest",
         "tslib": "latest",
-        "typescript": "latest"
+        "typescript": "latest",
+        "typescript-eslint": "^8.0.0"
     },
     "engines": {
         "node": ">=24"
