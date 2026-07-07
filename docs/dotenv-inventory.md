@@ -7,8 +7,8 @@ This is a **curated subset** (~160 of ~1,661 unique zsh functions/aliases), plus
 ## How to regenerate the raw data
 
 ```bash
-python3 /Users/angelcantu/GithubRepositories/angelcantugr/dotenv/stow-packages/zsh/.local/bin/dotenv-shell-lookup-v2 \
-  --root /Users/angelcantu/GithubRepositories/angelcantugr/dotenv/stow-packages/zsh/.config/zsh \
+python3 ~/GithubRepositories/angelcantugr/dotenv/stow-packages/zsh/.local/bin/dotenv-shell-lookup-v2 \
+  --root ~/GithubRepositories/angelcantugr/dotenv/stow-packages/zsh/.config/zsh \
   --unique --no-cache --format json
 ```
 This dumps every zsh function/alias with name/kind/description/usage/examples/category. The curation here re-runs a scoring pass (documented > has usage/examples > function-over-alias, excludes internal `_`/`-help`/`fzf-*` helpers) and takes the top ~15 per category. Standalone scripts, tmux scripts, and git hooks (not covered by the indexer) were inventoried manually by reading each file's header/argparse block.
