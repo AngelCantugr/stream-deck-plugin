@@ -26,7 +26,7 @@ export class ScriptRunner extends SingletonAction<ScriptRunnerSettings> {
         }
 
         try {
-            await runScript(config.scriptName, config.interpreter);
+            await runScript(config.scriptName, config.interpreter, config.args ?? []);
             await ev.action.showOk();
         } catch (err) {
             streamDeck.logger.error(`Failed to run script ${config.scriptName}`, err);

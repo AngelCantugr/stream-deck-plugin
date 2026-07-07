@@ -36,6 +36,7 @@ export interface ScriptConfig {
     readonly label: string;
     readonly scriptName: string;
     readonly interpreter: "bash" | "python3";
+    readonly args?: readonly string[];
 }
 
 // ─── App Launchers ───────────────────────────────────────────────────────────
@@ -154,6 +155,84 @@ export const SCRIPTS: readonly ScriptConfig[] = [
         label: "tmux",
         scriptName: "launch-tmux.sh",
         interpreter: "bash",
+    },
+
+    // Claude Desktop profile — Cowork page. Sends a marketplace skill into
+    // the "cowork" tmux session (typed into a live `claude` REPL if one's
+    // already running there, otherwise starts `claude` fresh with it).
+    // See docs/claude-desktop-profile.md for the Folder/Profile layout.
+    {
+        id: "skill-team-status",
+        label: "Team St",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/dev-team:team-status", "cmux Nightly"],
+    },
+    {
+        id: "skill-po-status",
+        label: "PO St",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/product-ownership:status", "cmux Nightly"],
+    },
+    {
+        id: "skill-gh-status",
+        label: "GH St",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/github-project-management:status", "cmux Nightly"],
+    },
+    {
+        id: "skill-gh-daily",
+        label: "GH Daily",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/github-project-management:daily-status", "cmux Nightly"],
+    },
+
+    // Claude Desktop profile — Code page. Sends a marketplace skill into
+    // the "code" tmux session, same reuse-or-start behavior as above.
+    {
+        id: "skill-create-pr",
+        label: "New PR",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/pr-workflow:create-pr", "cmux Nightly"],
+    },
+    {
+        id: "skill-commit-pr-mon",
+        label: "Push PR",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/pr-workflow:commit-push-pr-monitor", "cmux Nightly"],
+    },
+    {
+        id: "skill-clean-audit",
+        label: "CC Audit",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/clean-code:audit", "cmux Nightly"],
+    },
+    {
+        id: "skill-watch-issues",
+        label: "Watch Is",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/engineering-core:watch-issues", "cmux Nightly"],
+    },
+    {
+        id: "skill-devbasic-stat",
+        label: "Dev Stat",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/dev-basic:status", "cmux Nightly"],
+    },
+    {
+        id: "skill-devbasic-cfg",
+        label: "Dev Cfg",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/dev-basic:configure", "cmux Nightly"],
     },
 ];
 
