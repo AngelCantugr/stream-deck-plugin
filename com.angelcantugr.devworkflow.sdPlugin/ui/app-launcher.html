@@ -59,6 +59,7 @@
                 const d = JSON.parse(e.data);
                 if (d.event === "sendToPropertyInspector" && d.payload.type === "appList") {
                     const sel = document.getElementById("configId");
+                    sel.innerHTML = '<option value="">— select app —</option>';
                     d.payload.apps.forEach((app) => {
                         const opt = document.createElement("option");
                         opt.value = app.id;

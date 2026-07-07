@@ -73,6 +73,8 @@
                 const d = JSON.parse(e.data);
                 if (d.event === "sendToPropertyInspector" && d.payload.type === "commandList") {
                     const sel = document.getElementById("configId");
+                    sel.innerHTML = '<option value="">— select command —</option>';
+                    commandMap = {};
                     d.payload.commands.forEach((c) => {
                         commandMap[c.id] = c;
                         const opt = document.createElement("option");

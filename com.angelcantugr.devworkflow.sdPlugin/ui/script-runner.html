@@ -74,6 +74,8 @@
                 const d = JSON.parse(e.data);
                 if (d.event === "sendToPropertyInspector" && d.payload.type === "scriptList") {
                     const sel = document.getElementById("configId");
+                    sel.innerHTML = '<option value="">— select script —</option>';
+                    scriptMap = {};
                     d.payload.scripts.forEach((s) => {
                         scriptMap[s.id] = s;
                         const opt = document.createElement("option");

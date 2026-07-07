@@ -1,8 +1,9 @@
-import { exec as nodeExec } from "child_process";
+import { exec as nodeExec, execFile as nodeExecFile } from "child_process";
 import { join } from "path";
 import { promisify } from "util";
 
 const execAsync = promisify(nodeExec);
+const execFileAsync = promisify(nodeExecFile);
 
 export interface ExecResult {
     stdout: string;
@@ -17,19 +18,21 @@ export async function exec(command: string): Promise<ExecResult> {
 }
 
 export async function openAppByName(appName: string): Promise<ExecResult> {
-    return execAsync(`open -a "${appName.replace(/"/g, '\\"')}"`);
+    return execFileAsync("open", ["-a", appName]);
 }
 
 export async function openAppById(bundleId: string): Promise<ExecResult> {
-    return execAsync(`open -b "${bundleId.replace(/"/g, '\\"')}"`);
+    return execFileAsync("open", ["-b", bundleId]);
 }
 
 export async function runInTerminal(command: string): Promise<void> {
-    // Escape for AppleScript string literal
+    // Escape for AppleScript string literal — still needed since the command
+    // value becomes part of an AppleScript string passed as a single -e arg.
     const safe = command.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-    await execAsync(
-        `osascript -e 'tell application "Terminal" to do script "${safe}"' -e 'tell application "Terminal" to activate'`
-    );
+    await execFileAsync("osascript", [
+        "-e", `tell application "Terminal" to do script "${safe}"`,
+        "-e", `tell application "Terminal" to activate`,
+    ]);
 }
 
 export async function runScript(
@@ -38,6 +41,5 @@ export async function runScript(
     args: readonly string[] = []
 ): Promise<ExecResult> {
     const scriptPath = join(PLUGIN_DIR, "scripts", scriptName);
-    const safeArgs = args.map((a) => `"${a.replace(/"/g, '\\"')}"`).join(" ");
-    return execAsync(`${interpreter} "${scriptPath}" ${safeArgs}`.trimEnd());
+    return execFileAsync(interpreter, [scriptPath, ...args]);
 }

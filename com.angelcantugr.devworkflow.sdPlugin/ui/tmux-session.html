@@ -59,6 +59,7 @@
                 const d = JSON.parse(e.data);
                 if (d.event === "sendToPropertyInspector" && d.payload.type === "sessionList") {
                     const sel = document.getElementById("configId");
+                    sel.innerHTML = '<option value="">— select session —</option>';
                     d.payload.sessions.forEach((s) => {
                         const opt = document.createElement("option");
                         opt.value = s.id;
