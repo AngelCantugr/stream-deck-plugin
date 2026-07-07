@@ -45,7 +45,16 @@ After editing: `npm run build` (or let `watch` pick it up).
 4. Register in `src/plugin.ts`: `streamDeck.actions.registerAction(new MyAction())`
 5. Add a property inspector at `com.angelcantugr.devworkflow.sdPlugin/ui/my-action.html`
 
-## SDK Documentation (Context7)
+## SDK Documentation
+
+Check `docs/sdk-capabilities-reference.md` first — a practical map of the
+SDK's action model, settings, property-inspector, devices, profiles, system/
+app-monitoring, deep-linking, dynamic icons, logging, and manifest fields,
+scoped to what this plugin (macOS, Stream Deck XL, Keypad-only) actually
+needs. Fall back to Context7 or the live docs for anything it doesn't cover
+in enough depth.
+
+### Context7
 
 Use these library IDs with Context7 MCP for always-current SDK docs:
 
@@ -64,7 +73,11 @@ Example: `mcp__plugin_context7_context7__query-docs` with `libraryId: "/elgatosf
 stream-deck-plugin/
 ├── CLAUDE.md
 ├── docs/
-│   └── installed-plugins-actions.md   ← reference: action UUIDs of existing plugins
+│   ├── installed-plugins-actions.md   ← reference: action UUIDs of existing plugins
+│   ├── sdk-capabilities-reference.md  ← practical map of the Stream Deck SDK's capabilities
+│   ├── claude-desktop-profile.md      ← Claude Desktop Chat/Cowork/Code profile setup
+│   ├── profile-authoring-reference.md ← how to hand-author a .sdProfile bundle (unofficial)
+│   └── native-primitives-reference.md ← native Folder/Multi-Action/Open/Text/Hotkey/Pages catalog
 ├── src/
 │   ├── plugin.ts                       ← entry point; registers actions
 │   ├── config/
@@ -104,5 +117,9 @@ streamdeck pack com.angelcantugr.devworkflow.sdPlugin      # create .streamDeckP
 ## Reference
 
 - Installed plugin action IDs: `docs/installed-plugins-actions.md`
+- SDK capabilities (settings, devices, profiles, manifest fields, etc.): `docs/sdk-capabilities-reference.md`
+- Claude Desktop profile setup (Chat/Cowork/Code): `docs/claude-desktop-profile.md`
+- Hand-authoring a `.sdProfile` bundle directly (unofficial): `docs/profile-authoring-reference.md`
+- Native primitive catalog (Folder, Multi-Action, Open, Text, Hotkey, Pages, Switch Profile): `docs/native-primitives-reference.md`
 - macOS target only — no Windows support
 - Node.js 24+, Stream Deck 7.1+, macOS 13+
