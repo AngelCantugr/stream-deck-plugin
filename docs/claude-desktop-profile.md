@@ -110,14 +110,18 @@ host the session needs its own entry.
 - **Chat folder is thin.** No Chat-tab automation surface is documented
   anywhere for Claude Desktop — revisit if that changes.
 - **REPL-detection heuristic is unverified.** `send-skill-to-session.sh`
-  guesses a live `claude` REPL by checking if the pane's current command is
-  `node` or `claude`. Confirm on your machine with
-  `tmux list-panes -F '#{pane_current_command}'` while `claude` is actually
-  running, and adjust the script if it reports something else (e.g. an nvm
-  shim).
+  guesses a live `claude` REPL by checking if the active pane's current
+  command is `node` or `claude`. Confirm on your machine with
+  `tmux display-message -p '#{pane_current_command}'` while `claude` is
+  actually running, and adjust the script if it reports something else
+  (e.g. an nvm shim).
 - **No locking.** Firing two skill buttons at the same tmux session back to
   back can interleave keystrokes into one REPL prompt. Not handled — this is
   a manual single-press workflow, not a queueing system.
+- **Terminal app fallback.** If the configured app (e.g. `cmux Nightly`)
+  isn't installed or fails to open, the script falls back through iTerm
+  then Terminal rather than failing the whole button — the `tmux send-keys`
+  above it is what actually matters for the skill to run.
 - **cmux integration is tmux-only.** This setup relies on cmux hosting a
   tmux session (`cmux surface resume --kind tmux`), which is cmux's own
   documented pattern for persistent sessions — not on cmux's separate
