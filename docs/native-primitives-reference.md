@@ -154,6 +154,16 @@ schemas, and
 [claude-desktop-profile.md](claude-desktop-profile.md) for why this
 replaced a shell-script-based approach.
 
+**Folder-open as a Multi Action step — confirmed working.** No existing
+profile on this machine had ever nested a `com.elgato.streamdeck.profile.
+openchild` (§1) action inside a Multi Action, so this was untested
+territory. Built and confirmed working: the Claude Desktop profile's top
+level Chat/Cowork/Code keys are each a Multi Action running `Folder-open`
+→ `Hotkey` (Cmd+1/2/3, matching Claude Desktop's tab-switching shortcuts)
+— navigating into the folder *and* switching the app's active tab from
+one key press. Worth knowing for future work: structural/navigation
+actions aren't restricted from Multi Action steps, at least not this one.
+
 ---
 
 ## 3. Open — `com.elgato.streamdeck.system.open`
@@ -247,6 +257,17 @@ This is what [claude-desktop-profile.md §4](claude-desktop-profile.md)
 already recommends (manually, via the GUI) for Claude Desktop's Code-tab
 shortcuts — this schema is what that manual step produces on disk, useful
 if hand-authoring more of them becomes worthwhile.
+
+**Keycode formula — confirmed.** `NativeCode` and `VKeyCode` are macOS's
+Carbon `kVK_ANSI_*` virtual keycodes; `QTKeyCode` is Qt's `Qt::Key_*` enum
+(equal to the ASCII code for letters/digits). Cross-checked against 7+
+existing Hotkey entries in local profiles with zero mismatches (even
+caught a data-entry bug in the "Neovim" profile, where three
+differently-titled keys — "Bold", "Recent Files", "Preview" — all
+silently share the identical Cmd+E encoding). Then used to hand-author
+Cmd+1/2/3 (`NativeCode`/`VKeyCode` 18/19/20, `QTKeyCode` 49/50/51) for the
+Claude Desktop profile's folder keys (§2) — confirmed working by direct
+testing, not just formula cross-checking.
 
 ---
 

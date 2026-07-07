@@ -43,11 +43,28 @@ that auto-switched the Stream Deck to the Terminal profile.
 
 ## 2. Folder → key map (Claude Desktop profile)
 
+**As actually built** (superseding the original App Launcher /
+Script Runner design below — kept as a record of the pattern this plugin
+still uses for buttons *outside* this profile):
+
+### Top-level page
+
+| Key | Type | Steps |
+|---|---|---|
+| Chat | Multi Action | Folder-open (→ Chat folder) → Hotkey Cmd+1 |
+| Cowork | Multi Action | Folder-open (→ Cowork folder) → Hotkey Cmd+2 |
+| Code | Multi Action | Folder-open (→ Code folder) → Hotkey Cmd+3 |
+
+Confirmed working: navigating into a folder *and* switching Claude
+Desktop's own active tab from one key press — see
+[native-primitives-reference.md §2](native-primitives-reference.md) for
+the schema and the keycode formula this was built from.
+
 ### Chat folder
 
-| Action | configId | Notes |
+| Action | Target | Notes |
 |---|---|---|
-| App Launcher | `claude-desktop` | Opens/focuses the Claude app. |
+| Open (native) | `/Applications/Claude.app` | Opens/focuses the Claude app. |
 
 Intentionally thin — Claude Desktop has no documented Chat-tab shortcuts,
 URL scheme, or CLI flag to jump into Chat specifically, so there's nothing
@@ -55,19 +72,38 @@ else to script here yet.
 
 ### Cowork folder
 
-| Action | configId | Skill |
+| Action | Target | Skill |
 |---|---|---|
-| App Launcher | `claude-desktop` | — |
+| Open (native) | `/Applications/Claude.app` | — |
+| Multi Action | Open cmux → Delay → Text | `/dev-team:team-status` |
+| Multi Action | Open cmux → Delay → Text | `/product-ownership:status` |
+| Multi Action | Open cmux → Delay → Text | `/github-project-management:status` |
+| Multi Action | Open cmux → Delay → Text | `/github-project-management:daily-status` |
+
+### Code folder
+
+| Action | Target | Skill |
+|---|---|---|
+| Open (native) | `/Applications/Claude.app` | — |
+| Multi Action | Open cmux → Delay → Text | `/pr-workflow:create-pr` |
+| Multi Action | Open cmux → Delay → Text | `/pr-workflow:commit-push-pr-monitor` |
+| Multi Action | Open cmux → Delay → Text | `/clean-code:audit` |
+| Multi Action | Open cmux → Delay → Text | `/engineering-core:watch-issues` |
+| Multi Action | Open cmux → Delay → Text | `/dev-basic:status` |
+| Multi Action | Open cmux → Delay → Text | `/dev-basic:configure` |
+
+Plus native Hotkey buttons — see §4.
+
+<details>
+<summary>Original design (App Launcher / Script Runner configIds) — superseded by the Multi Action pattern above, but still how buttons in <em>other</em> profiles/pages of this plugin work</summary>
+
+| Action | configId | Notes/Skill |
+|---|---|---|
+| App Launcher | `claude-desktop` | Opens/focuses the Claude app. |
 | Script Runner | `skill-team-status` | `/dev-team:team-status` |
 | Script Runner | `skill-po-status` | `/product-ownership:status` |
 | Script Runner | `skill-gh-status` | `/github-project-management:status` |
 | Script Runner | `skill-gh-daily` | `/github-project-management:daily-status` |
-
-### Code folder
-
-| Action | configId | Skill |
-|---|---|---|
-| App Launcher | `claude-desktop` | — |
 | Script Runner | `skill-create-pr` | `/pr-workflow:create-pr` |
 | Script Runner | `skill-commit-pr-mon` | `/pr-workflow:commit-push-pr-monitor` |
 | Script Runner | `skill-clean-audit` | `/clean-code:audit` |
@@ -75,7 +111,11 @@ else to script here yet.
 | Script Runner | `skill-devbasic-stat` | `/dev-basic:status` |
 | Script Runner | `skill-devbasic-cfg` | `/dev-basic:configure` |
 
-Plus native Hotkey buttons — see §4.
+These `configId`s still exist in `dev-workflow.config.ts` and are usable
+on any key in any profile — the Claude Desktop profile itself just
+doesn't use them anymore, having moved to native Multi Actions instead.
+
+</details>
 
 ## 3. Manual assembly steps
 
