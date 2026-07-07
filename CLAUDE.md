@@ -26,6 +26,44 @@ npm run watch         # auto-rebuilds + restarts plugin on every src/ change
 
 Manual restart: `streamdeck restart com.angelcantugr.devworkflow`
 
+## Reloading Plugin Code vs. Stream Deck Profile Changes
+
+Two different things need two different reloads — don't confuse them:
+
+**Plugin code changed** (anything in `src/`, `manifest.json`, `scripts/`)
+— just the plugin process needs to restart. `npm run watch` does this
+automatically on every save; to do it manually:
+```bash
+npm run build                                        # rebuilds bin/plugin.js
+streamdeck restart com.angelcantugr.devworkflow       # or let watch/build do this
+```
+Note: files under `com.angelcantugr.devworkflow.sdPlugin/scripts/` are
+read from disk at runtime, not bundled by rollup — editing a `.sh`/`.py`
+script takes effect immediately, no rebuild or restart needed at all.
+
+**Stream Deck Profile changed** (a `.sdProfile` bundle under
+`~/Library/Application Support/com.elgato.StreamDeck/ProfilesV3/` was
+hand-edited directly rather than through the GUI — see
+[docs/profile-authoring-reference.md](docs/profile-authoring-reference.md))
+— the *whole Stream Deck app* needs to restart; it doesn't live-watch
+that directory. Plugin restart alone does nothing for this:
+```bash
+osascript -e 'quit app "Elgato Stream Deck"'
+sleep 2
+open -a "Elgato Stream Deck"
+```
+The `osascript` quit reliably reports `User canceled (-128)` even when it
+worked — don't treat that as a real failure. Verify the restart actually
+happened by checking for a fresh process instead of trusting the exit
+status:
+```bash
+sleep 2
+ps -o pid,lstart,command -p $(pgrep -f "Stream Deck.app/Contents/MacOS/Stream Deck")
+```
+A `lstart` timestamp matching when you just ran the restart confirms it
+took. This is disruptive to the user's other running plugins/sessions —
+get their go-ahead before doing it unprompted.
+
 ## Adding or Modifying Buttons
 
 All button behaviors live in **`src/config/dev-workflow.config.ts`**:

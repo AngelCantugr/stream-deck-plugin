@@ -13,7 +13,7 @@ Desktop, VS Code, Tick Tick, Obsidian Management — 10 profiles, ~40 pages,
 
 See [profile-authoring-reference.md](profile-authoring-reference.md) for
 the surrounding `.sdProfile`/page JSON structure these actions sit inside
-(the `"row,col"` key grid, `States[]`, etc.) — this doc only covers the
+(the `"col,row"` key grid, `States[]`, etc.) — this doc only covers the
 action entries themselves.
 
 ---
@@ -111,6 +111,14 @@ throughout the "Neovim" profile (6 sibling pages) instead of nesting.
 Worth considering for a future flatter layout — no back-button key
 overhead, and `goto` allows direct jumps instead of linear next/previous.
 
+**`PageIndex` is 1-indexed**, and maps directly onto position in the
+top-level `manifest.json`'s `Pages.Pages` array (`PageIndex: N` → 
+`Pages.Pages[N-1]`) — confirmed by cross-checking the Neovim profile's 5
+pages: every sub-page's "back to main" button uses `PageIndex: 1`
+(`Pages.Pages[0]`), and the main page's 4 forward-nav buttons use
+`PageIndex: 2..5` matching `Pages.Pages[1..4]` in order, with zero
+exceptions across 8 examples.
+
 ---
 
 ## 2. Multi Action — `com.elgato.streamdeck.multiactions`
@@ -154,15 +162,22 @@ schemas, and
 [claude-desktop-profile.md](claude-desktop-profile.md) for why this
 replaced a shell-script-based approach.
 
-**Folder-open as a Multi Action step — confirmed working.** No existing
-profile on this machine had ever nested a `com.elgato.streamdeck.profile.
-openchild` (§1) action inside a Multi Action, so this was untested
-territory. Built and confirmed working: the Claude Desktop profile's top
-level Chat/Cowork/Code keys are each a Multi Action running `Folder-open`
-→ `Hotkey` (Cmd+1/2/3, matching Claude Desktop's tab-switching shortcuts)
-— navigating into the folder *and* switching the app's active tab from
-one key press. Worth knowing for future work: structural/navigation
-actions aren't restricted from Multi Action steps, at least not this one.
+**Folder-open as a Multi Action step — confirmed NOT working.** No
+existing profile on this machine had ever nested a
+`com.elgato.streamdeck.profile.openchild` (§1) action inside a Multi
+Action, so this was untested territory — built it (Folder-open → Hotkey
+Cmd+1/2/3) and it did not work in practice. Superseded by the Pages-based
+pattern below; Folders and Multi Actions don't compose, at least not this
+combination. Worth remembering before trying it again.
+
+**Hotkey + Go-to-Page as a Multi Action step — confirmed working.** The
+actual solution: replace Folders entirely with sibling **Pages** (§1) on
+the same profile, and use a Multi Action of `Hotkey` → `Go to Page` for
+each top-level nav key. This switches Claude Desktop's active tab *and*
+navigates the Stream Deck to the matching page from one press — same
+goal as the failed Folder approach, different (working) mechanism. See
+[claude-desktop-profile.md §2](claude-desktop-profile.md) for the full
+layout this produced.
 
 ---
 
@@ -229,11 +244,29 @@ assumption).
 
 ## 5. Hotkey — `com.elgato.streamdeck.system.hotkey`
 
-Sends a keyboard shortcut. `Hotkeys` is a fixed 4-element array (the
-native UI supports up to a 4-key chord sequence); unused slots are
-all-`-1`/all-`false`. `Coalesce: true` seen in every example — purpose
-not confirmed from usage alone (likely: merge rapid repeated presses into
-one event; not verified against SDK docs).
+Sends a keyboard shortcut. `Hotkeys` is a fixed 4-element array; unused
+slots are all-`-1`/all-`false`. `Coalesce: true` seen in every example —
+purpose not confirmed from usage alone (likely: merge rapid repeated
+presses into one event; not verified against SDK docs).
+
+**The 4 slots are NOT confirmed to be a sequential chord.** Originally
+assumed this might let one Hotkey action send a multi-key sequence (e.g.
+Cmd+Shift+M, then a bare number key) in slots 1/2. Searched every profile
+on this machine for an example using more than one non-blank slot: zero
+found. Rather than gamble on unconfirmed schema (see the Folder +
+Multi-Action failure in §2), built an actual 2-key chord (Claude Code's
+Cmd+Shift+M → number permission-mode switch) as **two separate Hotkey
+steps inside one Multi Action, with a Delay between them** — reusing the
+`Hotkey → Delay → Text` sequencing already confirmed working in the
+pre-existing "AI Learning" profile, just swapping the final `Text` step
+for a second `Hotkey`. See
+[claude-desktop-profile.md](claude-desktop-profile.md) for the built
+example. What the 4 `Hotkeys` slots are actually for remains unconfirmed.
+
+**Confirmed `KeyModifiers` bitmask** (cross-checked against 15+ real
+examples across multiple profiles, zero contradictions): `Shift = 1`,
+`Ctrl = 2`, `Option = 4`, `Cmd = 8` — combined by addition (e.g.
+Cmd+Shift = 9, Cmd+Option = 12, Ctrl+Option = 6).
 
 ```json
 {

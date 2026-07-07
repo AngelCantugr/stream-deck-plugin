@@ -1,7 +1,18 @@
 # Claude Desktop Stream Deck Profile
 
-A profile for Claude Desktop with 3 pages — Chat, Cowork, Code — plus a
-second profile that auto-switches in whenever a terminal app is frontmost.
+A profile for Claude Desktop with a main page plus 3 sibling **Pages** —
+Chat, Cowork, Code — plus a second profile that auto-switches in whenever
+a terminal app is frontmost.
+
+**Pages, not Folders — Folders don't compose with Multi Actions.** The
+original design nested Chat/Cowork/Code as Folders (parent/child pages via
+`openchild`/`backtoparent`), with each top-level key a Multi Action doing
+Folder-open + Hotkey (Cmd+1/2/3) to switch Claude Desktop's own tab at the
+same time. Built and tested: **that combination does not work.** The
+working replacement uses flat sibling **Pages** (`page.goto`) instead of
+Folders — see §2 and
+[native-primitives-reference.md §2](native-primitives-reference.md) for
+what was actually confirmed vs. what wasn't.
 
 Behavior for every custom button here is defined in
 `src/config/dev-workflow.config.ts` (Script Runner entries with id prefix
@@ -28,8 +39,8 @@ plugin's code could do on its own.
 
 Two Stream Deck Profiles:
 
-- **"Claude Desktop"** — 3 Folders (Chat / Cowork / Code) for paging while
-  Claude Desktop itself is the app you're driving from.
+- **"Claude Desktop"** — 4 sibling Pages (main + Chat / Cowork / Code) for
+  paging while Claude Desktop itself is the app you're driving from.
 - **"Terminal"** — a flat grid of the same Cowork/Code skill buttons, set to
   auto-switch in whenever Terminal, iTerm, or cmux is frontmost.
 
@@ -41,56 +52,106 @@ the skill as its argument. So pressing "New PR" behaves identically whether
 you're paging through Claude Desktop's Code folder or sitting in a terminal
 that auto-switched the Stream Deck to the Terminal profile.
 
-## 2. Folder → key map (Claude Desktop profile)
+## 2. Page → key map (Claude Desktop profile)
 
-**As actually built** (superseding the original App Launcher /
-Script Runner design below — kept as a record of the pattern this plugin
-still uses for buttons *outside* this profile):
+**As actually built** (superseding the original Folder / App Launcher /
+Script Runner design in the collapsed section below — kept as a record of
+the `configId` pattern this plugin still uses for buttons *outside* this
+profile):
 
-### Top-level page
+`Pages.Pages` in the top-level manifest is `[main, Chat, Cowork, Code]` —
+`page.goto` `PageIndex` is 1-indexed, so main=1, Chat=2, Cowork=3, Code=4
+(see [native-primitives-reference.md §1](native-primitives-reference.md)).
+
+### Main page (page 1)
 
 | Key | Type | Steps |
 |---|---|---|
-| Chat | Multi Action | Folder-open (→ Chat folder) → Hotkey Cmd+1 |
-| Cowork | Multi Action | Folder-open (→ Cowork folder) → Hotkey Cmd+2 |
-| Code | Multi Action | Folder-open (→ Code folder) → Hotkey Cmd+3 |
+| Chat | Multi Action | Hotkey Cmd+1 → Go to Page 2 |
+| Cowork | Multi Action | Hotkey Cmd+2 → Go to Page 3 |
+| Code | Multi Action | Hotkey Cmd+3 → Go to Page 4 |
 
-Confirmed working: navigating into a folder *and* switching Claude
-Desktop's own active tab from one key press — see
-[native-primitives-reference.md §2](native-primitives-reference.md) for
-the schema and the keycode formula this was built from.
+Confirmed working: switching Claude Desktop's own active tab *and*
+navigating the Stream Deck to the matching page from one key press.
 
-### Chat folder
+### Chat page (page 2)
 
-| Action | Target | Notes |
-|---|---|---|
-| Open (native) | `/Applications/Claude.app` | Opens/focuses the Claude app. |
+| Key | Action | Target | Notes |
+|---|---|---|---|
+| 0,0 | Go to Page 1 | — | Back to main page. |
+| 0,1 | Open (native) | `/Applications/Claude.app` | Opens/focuses the Claude app. |
 
 Intentionally thin — Claude Desktop has no documented Chat-tab shortcuts,
 URL scheme, or CLI flag to jump into Chat specifically, so there's nothing
 else to script here yet.
 
-### Cowork folder
+### Cowork page (page 3)
 
-| Action | Target | Skill |
-|---|---|---|
-| Open (native) | `/Applications/Claude.app` | — |
-| Multi Action | Open cmux → Delay → Text | `/dev-team:team-status` |
-| Multi Action | Open cmux → Delay → Text | `/product-ownership:status` |
-| Multi Action | Open cmux → Delay → Text | `/github-project-management:status` |
-| Multi Action | Open cmux → Delay → Text | `/github-project-management:daily-status` |
+Key positions are `"col,row"` (col 0–7, row 0–3) — see
+[profile-authoring-reference.md §3](profile-authoring-reference.md) for
+why that's called out explicitly (a real bug came from assuming the
+opposite order).
 
-### Code folder
+| Key | Action | Target | Skill |
+|---|---|---|---|
+| 0,0 | Go to Page 1 | — | Back to main page. |
+| 0,1 | Open (native) | `/Applications/Claude.app` | — |
+| 0,2 | Multi Action | Open cmux → Delay → Text | `/dev-team:team-status` |
+| 0,3 | Multi Action | Open cmux → Delay → Text | `/product-ownership:status` |
+| 1,0 | Multi Action | Open cmux → Delay → Text | `/github-project-management:status` |
+| 1,1 | Multi Action | Open cmux → Delay → Text | `/github-project-management:daily-status` |
 
-| Action | Target | Skill |
-|---|---|---|
-| Open (native) | `/Applications/Claude.app` | — |
-| Multi Action | Open cmux → Delay → Text | `/pr-workflow:create-pr` |
-| Multi Action | Open cmux → Delay → Text | `/pr-workflow:commit-push-pr-monitor` |
-| Multi Action | Open cmux → Delay → Text | `/clean-code:audit` |
-| Multi Action | Open cmux → Delay → Text | `/engineering-core:watch-issues` |
-| Multi Action | Open cmux → Delay → Text | `/dev-basic:status` |
-| Multi Action | Open cmux → Delay → Text | `/dev-basic:configure` |
+### Code page (page 4)
+
+| Key | Action | Target | Skill |
+|---|---|---|---|
+| 0,0 | Go to Page 1 | — | Back to main page. |
+| 0,1 | Open (native) | `/Applications/Claude.app` | — |
+| 0,2 | Multi Action | Open cmux → Delay → Text | `/pr-workflow:create-pr` |
+| 0,3 | Multi Action | Open cmux → Delay → Text | `/pr-workflow:commit-push-pr-monitor` |
+| 1,0 | Multi Action | Open cmux → Delay → Text | `/dev-basic:status` |
+| 1,1 | Multi Action | Open cmux → Delay → Text | `/dev-basic:configure` |
+| 1,2 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 1 | Permission mode: Manual |
+| 1,3 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 2 | Permission mode: Accept Edits |
+| 2,1 | Multi Action | Open cmux → Delay → Text | `/clean-code:audit` |
+| 2,2 | Multi Action | Open cmux → Delay → Text | `/engineering-core:watch-issues` |
+| 2,3 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 3 | Permission mode: Plan Mode |
+| 3,0 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 4 | Permission mode: Auto Mode |
+| 3,1 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 5 | Permission mode: Bypass Permissions |
+| 3,2 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 1 | Model: Fable 5 |
+| 3,3 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 2 | Model: Opus 4.8 |
+| 4,0 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 3 | Model: Sonnet 5 |
+| 4,1 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 4 | Model: Haiku 4.5 |
+
+(`2,0` is occupied by a manual test key the user added to confirm the
+`col,row` convention — a duplicate "Plan Mode" title; harmless, safe to
+delete or repurpose.)
+
+Same chord pattern for model switching: Cmd+Shift+I opens the model
+menu, then a bare number (1–4) picks one. Built the same way as the
+permission-mode switch — `Hotkey → Delay → Hotkey` inside one Multi
+Action, not the unconfirmed 4-slot chord array.
+
+Claude Code's permission-mode menu is a **chord**: Cmd+Shift+M opens the
+menu, then a bare number key (1–5) picks a mode. The Hotkey action's
+`Settings.Hotkeys` array has 4 slots and *looks* like it might support a
+multi-key chord in one action — but no existing profile on this machine
+ever used more than one non-blank slot, so that was unconfirmed, exactly
+like the Folder+Multi-Action trap above. Built the safer way instead:
+two separate `Hotkey` steps (Cmd+Shift+M, then the number) inside one
+Multi Action with a `Delay` between them — the same sequencing pattern
+already confirmed working in the pre-existing "AI Learning" profile
+(`Hotkey → Delay → Text`). See
+[native-primitives-reference.md §5](native-primitives-reference.md) for
+the confirmed `KeyModifiers` bitmask this was built from.
+
+**A first version of these positions used `"row,col"` order** (e.g.
+`"0,4"`, `"1,6"`) — silently invalid, since the second number is actually
+the row and an XL only has 4 (0–3). Those keys never rendered anywhere,
+with no error in the log. Caught by the user reporting only 2 of 5 new
+buttons visible; confirmed root cause by having them add one key "in the
+next column" and observing it land at `"2,0"` — the number that moved
+was the *first* one. All positions above reflect the corrected layout.
 
 Plus native Hotkey buttons — see §4.
 
@@ -120,12 +181,12 @@ doesn't use them anymore, having moved to native Multi Actions instead.
 ## 3. Manual assembly steps
 
 1. In the Stream Deck app, create a new Profile named **"Claude Desktop"**.
-2. Add 3 keys with the native **Folder** action, labeled Chat / Cowork /
-   Code.
-3. Open each Folder and drag in the actions from the tables in §2. For each
-   Script Runner / App Launcher key, open its property inspector and pick
-   the matching `configId` from the dropdown (populated live from
-   `dev-workflow.config.ts`).
+2. Add 3 more Pages to it (not Folders) — the main page plus Chat, Cowork,
+   Code, in that order, so `page.goto PageIndex` 1/2/3/4 line up.
+3. On the main page, add 3 Multi Action keys (Chat/Cowork/Code), each with
+   a Hotkey step (Cmd+1/2/3) followed by a Go to Page step (2/3/4). On
+   each of the other 3 pages, add a Go to Page 1 key for going back, then
+   drag in the rest of the actions from the tables in §2.
 4. Create a second Profile named **"Terminal"**.
 5. Place the 10 `skill-*` Script Runner buttons from the Cowork/Code tables
    directly on its grid — no folders needed, it's one page.
@@ -180,8 +241,13 @@ encoding is found, that has to be done by hand in the app.
 
 ## 6. Known caveats
 
-- **Chat folder is thin.** No Chat-tab automation surface is documented
+- **Chat page is thin.** No Chat-tab automation surface is documented
   anywhere for Claude Desktop — revisit if that changes.
+- **Folders don't compose with Multi Actions.** Confirmed by real testing
+  (not just absence of precedent): a Multi Action step of Folder-open →
+  Hotkey does not work. This is why the profile uses flat sibling Pages
+  instead of Folders — see
+  [native-primitives-reference.md §2](native-primitives-reference.md).
 - **REPL-detection heuristic is unverified.** `send-skill-to-session.sh`
   guesses a live `claude` REPL by checking if the active pane's current
   command is `node` or `claude`. Confirm on your machine with

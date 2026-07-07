@@ -104,8 +104,18 @@ One file per page (main page, and one per folder), at
 }
 ```
 
-- `Actions` is a map keyed by **`"row,col"`**, zero-indexed (confirmed
-  `"0,0"`, `"0,1"`, etc. — an XL is 4 rows × 8 columns).
+- `Actions` is a map keyed by **`"col,row"`**, zero-indexed — an XL is 8
+  columns (valid: 0–7) × 4 rows (valid: 0–3). **Not `"row,col"`** — that
+  was the original (wrong) assumption in this doc, corrected after a real
+  bug: `"0,4"`/`"0,5"`/`"1,4"`..`"1,6"` were written assuming the *second*
+  number was a column (so up to 7 was safe) when it's actually the row
+  (max 3) — those keys silently fell off the physical device entirely,
+  with no error anywhere. Confirmed by watching the Stream Deck app place
+  a manually-added key at `"2,0"` after being told to add it "in the next
+  column" — the number that incremented for "next column" was the
+  *first* one. **When placing multiple keys in a row (same physical row,
+  varying column), keep the second number fixed and vary the first** —
+  the opposite of what "row,col" would suggest.
 - An empty page (used for the `Default` slot in §2) is just
   `{"Controllers": [{"Actions": null, "Type": "Keypad"}], "Icon": "", "Name": ""}`.
 
@@ -184,16 +194,82 @@ system action with `Settings: {"DeviceUUID", "PageIndex", "ProfileUUID"}`
 folder within the same one. Not used in the Claude Desktop profile, noted
 here since it was found in the same reverse-engineering pass.)
 
+## 5a. Pages — the working alternative to Folders for Multi Actions
+
+**Folders don't compose with Multi Actions — confirmed by testing, not
+just absence of precedent.** A Multi Action step of Folder-open
+(`openchild`) → Hotkey was built and did not work. If a key needs to both
+navigate *and* do something else (a hotkey, in the Claude Desktop
+profile's case) in one press, use flat sibling **Pages** instead of a
+Folder hierarchy.
+
+**The mental model is different from Folders.** A Folder is parent/child:
+one page's key opens into another page nested under it, with its own
+`ProfileUUID`-addressed relationship and a dedicated back-to-parent
+action. Pages are siblings: every page in `Pages.Pages` (§2) is a peer,
+addressed by **position in that array**, navigated with `page.goto`
+(jump to a specific one), `page.next`/`page.previous` (step through them
+in array order) — there's no parent/child concept, so "going back" is
+just another `goto` pointed at whichever page you consider "home":
+
+```json
+{
+    "ActionID": "<random-uuid>",
+    "LinkedTitle": true,
+    "Name": "Go to Page",
+    "Plugin": { "Name": "Pages", "UUID": "com.elgato.streamdeck.page.goto", "Version": "1.0" },
+    "Resources": null,
+    "Settings": { "PageIndex": 2 },
+    "State": 0,
+    "States": [{ "Title": "" }],
+    "UUID": "com.elgato.streamdeck.page.goto"
+}
+```
+
+`next`/`previous` have the same shape with an empty `Settings: {}` and
+UUIDs `com.elgato.streamdeck.page.next` / `com.elgato.streamdeck.page.previous`.
+
+**`PageIndex` is 1-indexed and maps directly onto `Pages.Pages` array
+position:** `PageIndex: N` → `Pages.Pages[N-1]`. Confirmed by
+cross-checking an existing 5-page profile ("Neovim") end to end: every
+sub-page's "back to main" key uses `PageIndex: 1` (`Pages.Pages[0]`), and
+the main page's 4 forward-nav keys use `PageIndex: 2..5` matching
+`Pages.Pages[1..4]` in order — 8 examples, zero exceptions.
+
+**To add a page:** create its `Profiles/<PAGE-UUID>/manifest.json` (§3),
+then append its UUID to the top-level manifest's `Pages.Pages` array
+(§2) — position in that array *is* what `PageIndex` refers to, so order
+matters. `Pages.Current`/`Pages.Default` are unaffected by how many
+sibling pages exist; they still just mark which page opens first and
+which is the separate empty placeholder (§2).
+
+**Combining with Multi Action (the actual point of switching to Pages):**
+a `Hotkey` step followed by a `page.goto` step in one Multi Action — this
+is what replaced the broken Folder-open + Hotkey combination. See
+[claude-desktop-profile.md §2](claude-desktop-profile.md) for the full
+worked example (Chat/Cowork/Code as pages 2/3/4, each triggered from page
+1 by Cmd+1/2/3 + goto).
+
 ## 6. Build → restart → verify loop
 
 1. Write the bundle to a **brand-new** UUID directory under `ProfilesV3`
    — never edit an existing profile's files directly.
-2. Quit and relaunch the Stream Deck app (`osascript -e 'tell application
-   "Elgato Stream Deck" to quit'` — if that returns a "user canceled"
-   AppleScript error, fall back to `killall "Stream Deck"`; then
-   `open -a "Elgato Stream Deck"`). This is disruptive — it reloads every
-   plugin process — so get the user's go-ahead first rather than doing it
-   unprompted.
+2. Quit and relaunch the Stream Deck app:
+   ```bash
+   osascript -e 'quit app "Elgato Stream Deck"'
+   sleep 2
+   open -a "Elgato Stream Deck"
+   ```
+   **The `osascript` call reliably returns a `User canceled (-128)` error
+   even when it worked** — confirmed across many restarts this session by
+   checking the resulting process's start time (`ps -o pid,lstart,command
+   -p $(pgrep -f "Stream Deck.app/Contents/MacOS/Stream Deck")`) after
+   each one; it was a fresh PID/timestamp every single time despite the
+   "canceled" message. Don't treat that error as a real failure or reach
+   for `killall` because of it — verify with the PID/timestamp check
+   instead of trusting the AppleScript exit status. This is disruptive —
+   it reloads every plugin process — so get the user's go-ahead first
+   rather than doing it unprompted.
 3. Check `~/Library/Logs/ElgatoStreamDeck/StreamDeck.log` for `war `/`err `
    lines mentioning your profile's UUID or name — this is the fastest way
    to catch a schema mistake (like the `Current`/`Default` duplicate
