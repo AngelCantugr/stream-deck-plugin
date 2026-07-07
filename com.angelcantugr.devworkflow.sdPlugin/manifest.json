@@ -1,0 +1,78 @@
+{
+    "Name": "Dev Workflow",
+    "UUID": "com.angelcantugr.devworkflow",
+    "Version": "1.0.0.0",
+    "Author": "Angel Cantu",
+    "Icon": "imgs/plugin-icon",
+    "SDKVersion": 3,
+    "CodePath": "bin/plugin.js",
+    "Description": "Developer workflow buttons for Stream Deck XL. All behaviors defined as TypeScript code — store your Stream Deck config in git.",
+    "Category": "Dev Workflow",
+    "CategoryIcon": "imgs/category-icon",
+    "Software": { "MinimumVersion": "7.1" },
+    "OS": [
+        { "Platform": "mac", "MinimumVersion": "13" }
+    ],
+    "Nodejs": {
+        "Version": "24",
+        "Debug": "enabled"
+    },
+    "Actions": [
+        {
+            "Name": "App Launcher",
+            "UUID": "com.angelcantugr.devworkflow.app-launcher",
+            "Icon": "imgs/actions/app-launcher/icon",
+            "Tooltip": "Launch or focus a developer application. Apps configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/app-launcher.html",
+            "Controllers": ["Keypad"],
+            "States": [
+                {
+                    "Image": "imgs/actions/app-launcher/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "Name": "Shell Command",
+            "UUID": "com.angelcantugr.devworkflow.shell-command",
+            "Icon": "imgs/actions/shell-command/icon",
+            "Tooltip": "Run a shell command in the background or a new terminal tab. Commands configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/shell-command.html",
+            "Controllers": ["Keypad"],
+            "States": [
+                {
+                    "Image": "imgs/actions/shell-command/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "Name": "tmux Session",
+            "UUID": "com.angelcantugr.devworkflow.tmux-session",
+            "Icon": "imgs/actions/tmux-session/icon",
+            "Tooltip": "Attach to or create a named tmux session. Sessions configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/tmux-session.html",
+            "Controllers": ["Keypad"],
+            "States": [
+                {
+                    "Image": "imgs/actions/tmux-session/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "Name": "Script Runner",
+            "UUID": "com.angelcantugr.devworkflow.script-runner",
+            "Icon": "imgs/actions/script-runner/icon",
+            "Tooltip": "Run a bash or Python script from the plugin's scripts/ directory. Scripts configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/script-runner.html",
+            "Controllers": ["Keypad"],
+            "States": [
+                {
+                    "Image": "imgs/actions/script-runner/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        }
+    ]
+}

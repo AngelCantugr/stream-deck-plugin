@@ -1,0 +1,22 @@
+{
+    "name": "com.angelcantugr.devworkflow",
+    "version": "1.0.0",
+    "description": "Stream Deck Dev Workflow plugin — settings as code",
+    "scripts": {
+        "build": "rollup -c",
+        "watch": "rollup -c --watch"
+    },
+    "devDependencies": {
+        "@elgato/streamdeck": "latest",
+        "@rollup/plugin-commonjs": "^29.0.3",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-typescript": "latest",
+        "@types/node": "^26.1.0",
+        "rollup": "latest",
+        "tslib": "latest",
+        "typescript": "latest"
+    },
+    "engines": {
+        "node": ">=24"
+    }
+}
