@@ -13,6 +13,9 @@ export interface ExecResult {
 // At runtime, Node.js starts from the .sdPlugin directory.
 export const PLUGIN_DIR = process.cwd();
 
+// WARNING: passes `command` directly to a shell — unsafe for any dynamic or
+// user-supplied input. Only call with compile-time-constant strings from
+// dev-workflow.config.ts (e.g. SHELL_COMMANDS entries).
 export async function exec(command: string): Promise<ExecResult> {
     return execAsync(command);
 }
