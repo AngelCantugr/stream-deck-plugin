@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+            color: #c8c8c8;
+            background: transparent;
+            padding: 12px;
+        }
+        label {
+            display: block;
+            margin: 0 0 4px;
+            font-size: 11px;
+            color: #8c8c8c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select {
+            width: 100%;
+            padding: 6px 8px;
+            background: #1a1a1a;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            color: #c8c8c8;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        select:focus { outline: none; border-color: #5a5a5a; }
+        .hint {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+            line-height: 1.5;
+        }
+        code { color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <label>App</label>
+    <select id="configId">
+        <option value="">— select app —</option>
+    </select>
+    <p class="hint">Add apps in <code>src/config/dev-workflow.config.ts</code> → APP_LAUNCHERS</p>
+
+    <script>
+        let ws = null, actionCtx = null, settings = {};
+
+        function connectElgatoStreamDeckSocket(port, uuid, regEvent, info, actionInfo) {
+            actionCtx = JSON.parse(actionInfo);
+            settings = actionCtx.payload.settings || {};
+
+            ws = new WebSocket("ws://127.0.0.1:" + port);
+            ws.onopen = () => ws.send(JSON.stringify({ event: regEvent, uuid }));
+            ws.onmessage = (e) => {
+                const d = JSON.parse(e.data);
+                if (d.event === "sendToPropertyInspector" && d.payload.type === "appList") {
+                    const sel = document.getElementById("configId");
+                    sel.innerHTML = '<option value="">— select app —</option>';
+                    d.payload.apps.forEach((app) => {
+                        const opt = document.createElement("option");
+                        opt.value = app.id;
+                        opt.textContent = `${app.label} (${app.id})`;
+                        sel.appendChild(opt);
+                    });
+                    sel.value = settings.configId || "";
+                }
+                if (d.event === "didReceiveSettings") {
+                    settings = d.payload.settings;
+                    document.getElementById("configId").value = settings.configId || "";
+                }
+            };
+        }
+
+        document.getElementById("configId").addEventListener("change", (e) => {
+            settings.configId = e.target.value;
+            ws.send(JSON.stringify({
+                event: "setSettings",
+                context: actionCtx.context,
+                payload: settings,
+            }));
+        });
+    </script>
+</body>
+</html>
