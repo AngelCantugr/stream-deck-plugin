@@ -129,6 +129,7 @@ stream-deck-plugin/
 │       └── shell.ts                    ← exec helpers
 ├── com.angelcantugr.devworkflow.sdPlugin/
 │   ├── manifest.json                   ← plugin metadata + action declarations
+│   ├── Claude Desktop.streamDeckProfile ← bundled Profile, auto-installs (see docs/claude-desktop-profile.md §7)
 │   ├── bin/                            ← built output (gitignored)
 │   ├── imgs/                           ← icons (replace placeholders with real PNGs)
 │   ├── ui/                             ← property inspector HTML files

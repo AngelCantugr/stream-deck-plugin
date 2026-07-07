@@ -248,6 +248,19 @@ encoding is found, that has to be done by hand in the app.
   Hotkey does not work. This is why the profile uses flat sibling Pages
   instead of Folders — see
   [native-primitives-reference.md §2](native-primitives-reference.md).
+- **No custom icons yet — deliberately deferred, not a limitation.** Every
+  button on this profile now uses a native primitive (Open, Multi Action,
+  Hotkey) instead of this plugin's own icon-bearing action types, so keys
+  currently render with Stream Deck's generic default icon per action
+  type rather than something distinct per skill/mode/model. This is fine
+  for now, but the door is open to add them later: any key's
+  `States[].Image` accepts a path to a PNG copied into that page's own
+  `Images/` folder — exactly the mechanism already used for the Chat/
+  Cowork/Code App Launcher buttons in the very first version of this
+  profile (see
+  [profile-authoring-reference.md §4](profile-authoring-reference.md)).
+  Nothing about the native-primitive design blocks this — it just hasn't
+  been done.
 - **REPL-detection heuristic is unverified.** `send-skill-to-session.sh`
   guesses a live `claude` REPL by checking if the active pane's current
   command is `node` or `claude`. Confirm on your machine with
@@ -301,7 +314,8 @@ you can export it and ship it *with the plugin*, so it's git-tracked and
 auto-installs for anyone who installs the plugin, the same way the icons
 and scripts already do.
 
-**Steps, once the "Claude Desktop" profile (§3) looks right:**
+**Official steps (Elgato's documented path), once the "Claude Desktop"
+profile (§3) looks right:**
 
 1. In the Stream Deck app: Preferences → Profiles → export **"Claude
    Desktop"** as a `.streamDeckProfile` file.
@@ -324,6 +338,25 @@ and scripts already do.
    than waiting for the plugin to first try switching to it.
 4. Rebuild (`npm run build`) and reinstall the plugin to pick up the new
    bundled profile.
+
+**What was actually done: reverse-engineered Step 1, skipping the GUI
+export entirely.** `.streamDeckPlugin` files (produced by `streamdeck
+pack`) are confirmed to just be ZIP archives — checked with `file` on a
+freshly-packed one (`Zip archive data`, `PK\x03\x04` magic bytes).
+`.streamDeckProfile` is the sibling format for profiles, so the same
+theory was tested: `zip -r -X "Claude Desktop.streamDeckProfile"
+manifest.json Images Profiles` run from inside the hand-authored
+`.sdProfile` bundle directory (`9E5A675D-....sdProfile`, itself built per
+[profile-authoring-reference.md](profile-authoring-reference.md)),
+dropped straight into `com.angelcantugr.devworkflow.sdPlugin/`. `streamdeck
+validate` passed cleanly against the resulting manifest + bundled profile.
+No `.streamDeckProfile` file from an actual GUI export was available on
+this machine to diff against, so the *exact* byte-for-byte format Elgato's
+own exporter produces is still unconfirmed — `streamdeck validate` passing
+is a real but partial signal, not full confirmation the app will install
+this file the same way a GUI export would. If it doesn't behave correctly
+on a fresh plugin install, exporting once via the GUI and diffing against
+this file is the fallback.
 
 **Runtime switching.** The SDK also exposes
 `streamDeck.profiles.switchToProfile(deviceId, "Claude Desktop")` for
