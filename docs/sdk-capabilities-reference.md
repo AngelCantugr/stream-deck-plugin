@@ -244,9 +244,9 @@ something Stream Deck's deep-linking can paper over, since this scheme only
 routes messages to Stream Deck plugins, not to arbitrary other apps.
 
 Not implemented anywhere in this plugin today. Potential future use: a
-`send-skill-to-session.sh`-style flow triggered by opening a
-`streamdeck://` link from elsewhere (e.g. a Raycast/Alfred command),
-instead of only from a physical key press.
+cmux-workflow-style skill dispatch (see `cmux-integration-reference.md`)
+triggered by opening a `streamdeck://` link from elsewhere (e.g. a
+Raycast/Alfred command), instead of only from a physical key press.
 
 ---
 
@@ -272,13 +272,13 @@ Two SDK concepts with confusingly similar names:
   app) → runtime `setImage()` → manifest default. A plugin **cannot**
   override a user-assigned custom image.
 
-**Relevant to this repo**: today every Script Runner button shares one
-static icon regardless of which skill it triggers — only the title text
-(`label`) differs. `setImage()` with an SVG template rendering the skill's
-label/initials could give each of the 10+ `skill-*` buttons a visually
-distinct icon at `onWillAppear` time, with zero new PNG assets. Not
-implemented — flagged as a real, low-cost option if the shared-icon
-UX becomes a problem.
+**Relevant to this repo**: today every cmux Workflow button (see
+`cmux-integration-reference.md`) shares one static icon regardless of which
+skill or worktree variant it triggers — only the title text (`label`)
+differs. `setImage()` with an SVG template rendering the label/initials
+could give each `CMUX_WORKFLOWS` entry a visually distinct icon at
+`onWillAppear` time, with zero new PNG assets. Not implemented — flagged as
+a real, low-cost option if the shared-icon UX becomes a problem.
 
 ---
 
@@ -293,10 +293,10 @@ inspector/debugger — it is a **separate concern** from log verbosity/level.
 
 Not currently used: `.info`/`.debug` around normal lifecycle events (button
 presses, skill dispatches) — logging is presently reactive (only on
-failure) rather than giving any trace of normal operation. Worth doing if
-`send-skill-to-session.sh`'s REPL-detection heuristic (documented as
-unverified in `claude-desktop-profile.md`) ever needs debugging in the
-field — a log line for which branch it took would help.
+failure) rather than giving any trace of normal operation. Worth doing to
+trace `cmux.ts`'s find-vs-create branch in `dispatchToWorkspace()` if
+workspace-matching-by-title ever misbehaves in the field (see
+`cmux-integration-reference.md`).
 
 ---
 
@@ -376,14 +376,16 @@ Ranked by value vs. effort, none implemented yet — flagged for future work:
    philosophy, already planned in `claude-desktop-profile.md`.
 2. **Add `$schema`** to `manifest.json` — zero cost, immediate editor
    validation.
-3. **Move the shared "preferred terminal app" into global settings**
-   instead of repeating `"cmux Nightly"` across 10 config entries (§2).
-4. **Dynamic per-button icons via `setImage()` + SVG** for the `skill-*`
-   Script Runner buttons, if the shared static icon ever becomes a real
+3. ~~Move the shared "preferred terminal app" into global settings instead
+   of repeating `"cmux Nightly"` across config entries~~ — moot: skill
+   dispatch now targets cmux workspaces directly via the CLI/socket (see
+   `cmux-integration-reference.md`), no terminal-app name needed anywhere.
+4. **Dynamic per-button icons via `setImage()` + SVG** for the
+   `CMUX_WORKFLOWS` buttons, if the shared static icon ever becomes a real
    usability problem (§8).
 5. **Scoped, proactive logging** (`createScope`, `.info`/`.debug` beyond
-   just error paths) — would help debug the still-unverified
-   REPL-detection heuristic in `send-skill-to-session.sh` (§9).
+   just error paths) — would help debug `cmux.ts`'s workspace-matching
+   logic if it ever misbehaves (§9).
 6. Everything else in this doc (i18n, deep-linking, app-monitoring,
    device-aware branching, toggle states) — noted for completeness, no
    concrete need in this plugin today.
