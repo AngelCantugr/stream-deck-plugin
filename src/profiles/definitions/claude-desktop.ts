@@ -5,7 +5,7 @@
 // Fixes over the hand-built version:
 // - Skill keys previously referenced the long-renamed action UUID
 //   "…devworkflow.cmux-workflow" — every one of them was a dead button.
-//   They now reference Script Runner correctly.
+//   They now reference the cmux Workflow action correctly.
 // - A duplicate "Plan Mode" chord on the Code page is removed.
 // - Live status tiles added to the main page.
 //
@@ -14,7 +14,7 @@
 // (⌘1/2/3) AND jump the deck to the matching page in one press.
 
 import { gotoPage, hotkey, hotkeyChord, multiAction, open } from "../actions/native";
-import { scriptRunner, statusTile } from "../actions/plugin";
+import { cmuxWorkflow, statusTile } from "../actions/plugin";
 import type { ActionEntry, KeyPlacement, ProfileSpec } from "../model";
 
 const CLAUDE_APP = "/Applications/Claude.app";
@@ -61,10 +61,10 @@ export const claudeDesktop: ProfileSpec = {
             id: "cowork",
             keys: [
                 ...backAndOpen(),
-                { col: 0, row: 2, key: scriptRunner("skill-team-status", undefined, "report") },
-                { col: 0, row: 3, key: scriptRunner("skill-po-status", undefined, "report") },
-                { col: 1, row: 0, key: scriptRunner("skill-gh-status", undefined, "report") },
-                { col: 1, row: 1, key: scriptRunner("skill-gh-daily", undefined, "report") },
+                { col: 0, row: 2, key: cmuxWorkflow("skill-team-status", undefined, "report") },
+                { col: 0, row: 3, key: cmuxWorkflow("skill-po-status", undefined, "report") },
+                { col: 1, row: 0, key: cmuxWorkflow("skill-gh-status", undefined, "report") },
+                { col: 1, row: 1, key: cmuxWorkflow("skill-gh-daily", undefined, "report") },
                 { col: 6, row: 3, key: statusTile("tmux-attention") },
                 { col: 7, row: 3, key: statusTile("agent-inbox") },
             ],
@@ -73,12 +73,12 @@ export const claudeDesktop: ProfileSpec = {
             id: "code",
             keys: [
                 ...backAndOpen(),
-                { col: 0, row: 2, key: scriptRunner("skill-create-pr", undefined, "pr") },
-                { col: 0, row: 3, key: scriptRunner("skill-commit-pr-mon", undefined, "pr") },
-                { col: 1, row: 0, key: scriptRunner("skill-devbasic-stat", undefined, "report") },
-                { col: 1, row: 1, key: scriptRunner("skill-devbasic-cfg", undefined, "tools") },
-                { col: 2, row: 1, key: scriptRunner("skill-clean-audit", undefined, "tools") },
-                { col: 2, row: 2, key: scriptRunner("skill-watch-issues", undefined, "issue") },
+                { col: 0, row: 2, key: cmuxWorkflow("skill-create-pr", undefined, "pr") },
+                { col: 0, row: 3, key: cmuxWorkflow("skill-commit-pr-mon", undefined, "pr") },
+                { col: 1, row: 0, key: cmuxWorkflow("skill-devbasic-stat", undefined, "report") },
+                { col: 1, row: 1, key: cmuxWorkflow("skill-devbasic-cfg", undefined, "tools") },
+                { col: 2, row: 1, key: cmuxWorkflow("skill-clean-audit", undefined, "tools") },
+                { col: 2, row: 2, key: cmuxWorkflow("skill-watch-issues", undefined, "issue") },
 
                 // Permission modes (⌘⇧M → 1..5)
                 { col: 1, row: 2, key: mode("1", "Manual") },

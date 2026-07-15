@@ -111,6 +111,22 @@
                     "TitleAlignment": "bottom"
                 }
             ]
+        },
+        {
+            "Name": "cmux Workflow",
+            "UUID": "com.angelcantugr.devworkflow.cmux-workflow",
+            "Icon": "imgs/actions/cmux-workflow/icon",
+            "Tooltip": "Dispatch a skill into a named cmux workspace, or launch a worktree/agent session, via the cmux CLI/socket. Workflows configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/cmux-workflow.html",
+            "Controllers": [
+                "Keypad"
+            ],
+            "States": [
+                {
+                    "Image": "imgs/actions/cmux-workflow/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
         }
     ]
 }

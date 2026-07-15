@@ -105,29 +105,33 @@ Key positions are `"col,row"` (col 0–7, row 0–3) — see
 why that's called out explicitly (a real bug came from assuming the
 opposite order).
 
-| Key | Action | Target | Skill |
+| Key | Action | configId | Skill |
 |---|---|---|---|
 | 0,0 | Go to Page 1 | — | Back to main page. |
-| 0,1 | Open (native) | `/Applications/Claude.app` | — |
-| 0,2 | Multi Action | Open cmux → Delay → Text | `/dev-team:team-status` |
-| 0,3 | Multi Action | Open cmux → Delay → Text | `/product-ownership:status` |
-| 1,0 | Multi Action | Open cmux → Delay → Text | `/github-project-management:status` |
-| 1,1 | Multi Action | Open cmux → Delay → Text | `/github-project-management:daily-status` |
+| 0,1 | Open (native) | — | `/Applications/Claude.app` |
+| 0,2 | cmux Workflow | `skill-team-status` | `/dev-team:team-status` |
+| 0,3 | cmux Workflow | `skill-po-status` | `/product-ownership:status` |
+| 1,0 | cmux Workflow | `skill-gh-status` | `/github-project-management:status` |
+| 1,1 | cmux Workflow | `skill-gh-daily` | `/github-project-management:daily-status` |
+
+Rebuilt from the original Multi Action (`Open cmux` → `Delay` → `Text`)
+pattern to the `cmux Workflow` action — see §6 and
+[cmux-integration-reference.md](cmux-integration-reference.md).
 
 ### Code page (page 4)
 
-| Key | Action | Target | Skill |
+| Key | Action | configId / Target | Skill |
 |---|---|---|---|
 | 0,0 | Go to Page 1 | — | Back to main page. |
-| 0,1 | Open (native) | `/Applications/Claude.app` | — |
-| 0,2 | Multi Action | Open cmux → Delay → Text | `/pr-workflow:create-pr` |
-| 0,3 | Multi Action | Open cmux → Delay → Text | `/pr-workflow:commit-push-pr-monitor` |
-| 1,0 | Multi Action | Open cmux → Delay → Text | `/dev-basic:status` |
-| 1,1 | Multi Action | Open cmux → Delay → Text | `/dev-basic:configure` |
+| 0,1 | Open (native) | — | `/Applications/Claude.app` |
+| 0,2 | cmux Workflow | `skill-create-pr` | `/pr-workflow:create-pr` |
+| 0,3 | cmux Workflow | `skill-commit-pr-mon` | `/pr-workflow:commit-push-pr-monitor` |
+| 1,0 | cmux Workflow | `skill-devbasic-stat` | `/dev-basic:status` |
+| 1,1 | cmux Workflow | `skill-devbasic-cfg` | `/dev-basic:configure` |
 | 1,2 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 1 | Permission mode: Manual |
 | 1,3 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 2 | Permission mode: Accept Edits |
-| 2,1 | Multi Action | Open cmux → Delay → Text | `/clean-code:audit` |
-| 2,2 | Multi Action | Open cmux → Delay → Text | `/engineering-core:watch-issues` |
+| 2,1 | cmux Workflow | `skill-clean-audit` | `/clean-code:audit` |
+| 2,2 | cmux Workflow | `skill-watch-issues` | `/engineering-core:watch-issues` |
 | 2,3 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 3 | Permission mode: Plan Mode |
 | 3,0 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 4 | Permission mode: Auto Mode |
 | 3,1 | Multi Action | Hotkey ⌘⇧M → Delay → Hotkey 5 | Permission mode: Bypass Permissions |
@@ -171,7 +175,7 @@ was the *first* one. All positions above reflect the corrected layout.
 Plus native Hotkey buttons — see §4.
 
 <details>
-<summary>Original design (App Launcher / Script Runner configIds) — superseded by the Multi Action pattern above, but still how buttons in <em>other</em> profiles/pages of this plugin work</summary>
+<summary>Original design (App Launcher / Script Runner configIds) — superseded first by the Multi Action pattern above, and since by the cmux Workflow action below</summary>
 
 | Action | configId | Notes/Skill |
 |---|---|---|
@@ -187,9 +191,13 @@ Plus native Hotkey buttons — see §4.
 | Script Runner | `skill-devbasic-stat` | `/dev-basic:status` |
 | Script Runner | `skill-devbasic-cfg` | `/dev-basic:configure` |
 
-These `configId`s still exist in `dev-workflow.config.ts` and are usable
-on any key in any profile — the Claude Desktop profile itself just
-doesn't use them anymore, having moved to native Multi Actions instead.
+**These Script Runner `configId`s and the `send-skill-to-session.sh` script
+they ran no longer exist** — replaced by the `cmux Workflow` action
+(`com.angelcantugr.devworkflow.cmux-workflow`) and equivalent `configId`s
+in `CMUX_WORKFLOWS` (same ids, e.g. `skill-team-status`,
+`skill-create-pr`), which dispatch directly over the cmux CLI/socket
+instead of tmux + AppleScript. See
+[cmux-integration-reference.md](cmux-integration-reference.md).
 
 </details>
 
@@ -276,38 +284,27 @@ encoding is found, that has to be done by hand in the app.
   [profile-authoring-reference.md §4](profile-authoring-reference.md)).
   Nothing about the native-primitive design blocks this — it just hasn't
   been done.
-- **REPL-detection heuristic is unverified.** `send-skill-to-session.sh`
-  guesses a live `claude` REPL by checking if the active pane's current
-  command is `node` or `claude`. Confirm on your machine with
-  `tmux display-message -p '#{pane_current_command}'` while `claude` is
-  actually running, and adjust the script if it reports something else
-  (e.g. an nvm shim).
-- **No locking.** Firing two skill buttons at the same tmux session back to
-  back can interleave keystrokes into one REPL prompt. Not handled — this is
-  a manual single-press workflow, not a queueing system.
-- **First press on a fresh session always opens in Terminal.app, not
-  cmux.** Confirmed by real testing: raising an app to the foreground does
-  NOT make it display a specific tmux session — `tmux send-keys` only
-  reaches the session's pty, invisibly, unless some window is actually
-  attached. `send-skill-to-session.sh` now checks `tmux list-clients` and,
-  if nothing is attached yet, opens the session in Terminal.app via
-  AppleScript (the one mechanism confirmed to work) rather than just
-  hoping the configured app (`cmux Nightly`) happens to be showing it.
-  Once that first window is open, later presses correctly just bring the
-  configured app forward — but if you want cmux specifically to be the
-  one showing a session's first press, you need to already have a cmux
-  surface attached to it beforehand (see below).
-- **cmux integration is tmux-only, and has no reliable "attach for me"
-  mechanism.** This setup relies on cmux hosting a tmux session (`cmux
-  surface resume --kind tmux`), cmux's own documented pattern for
-  persistent sessions — not its separate Unix-socket API (workspace
-  creation, direct pane input, screen reading), whose CLI syntax isn't
-  published anywhere this research could reach (cmux's README defers to
-  `cmux.com/docs/api`). Practical result: to have cmux (rather than
-  Terminal.app) show a `cowork`/`code` session's output, manually create a
-  cmux surface running `tmux attach -t cowork` (and `code`) once ahead of
-  time — after that, `tmux list-clients` sees it as attached and the
-  script correctly just raises cmux instead of opening Terminal.
+- **Resolved — tmux/AppleScript mechanism replaced.** All four caveats
+  originally documented here (unverified REPL-detection heuristic, no
+  locking against double-presses, first-press-opens-Terminal-not-cmux, and
+  cmux's socket API being unpublished/unresearched) applied to
+  `send-skill-to-session.sh`, which has been deleted. Skill dispatch now
+  goes through cmux's own CLI/socket directly (`cmux new-workspace` /
+  `select-workspace` / `send`) via the `cmux Workflow` action — no tmux,
+  no REPL-sniffing, no AppleScript, and no Terminal.app fallback, since
+  `cmux new-workspace --focus true` puts the workspace in front natively.
+  Full detail, including the one caveat that does still apply (no locking
+  against two very-fast presses racing `find-or-create`), is in
+  [cmux-integration-reference.md](cmux-integration-reference.md).
+- **The bundled "Claude Desktop" profile has been rebuilt.** All 10 skill
+  buttons (§2's Cowork/Code tables) now use the `cmux Workflow` action
+  instead of the native Multi Action (`Open cmux` → `Delay` → `Text`)
+  pattern — hand-edited directly in the live `.sdProfile` bundle (same
+  method as §7a), then re-zipped into this repo's bundled
+  `Claude Desktop.streamDeckProfile`. `streamdeck validate` passes and the
+  Stream Deck app log shows a clean restart with no schema warnings for
+  this profile. **Not yet confirmed on the physical device** — that needs
+  a human to look at the Stream Deck and press a key.
 
 ## 7a. Alternative: hand-authoring the profile directly
 

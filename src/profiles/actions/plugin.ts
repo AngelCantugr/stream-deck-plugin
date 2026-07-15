@@ -12,6 +12,7 @@
 
 import {
     findApp,
+    findCmuxWorkflow,
     findCommand,
     findScript,
     findSession,
@@ -80,6 +81,18 @@ export function scriptRunner(configId: string, title?: string, icon?: IconCatego
     return pluginEntry(
         "Script Runner",
         "com.angelcantugr.devworkflow.script-runner",
+        { configId },
+        title ?? config.label,
+        icon,
+    );
+}
+
+export function cmuxWorkflow(configId: string, title?: string, icon?: IconCategory): ActionEntry {
+    const config = findCmuxWorkflow(configId);
+    if (!config) throw new Error(`cmuxWorkflow: unknown configId "${configId}"`);
+    return pluginEntry(
+        "cmux Workflow",
+        "com.angelcantugr.devworkflow.cmux-workflow",
         { configId },
         title ?? config.label,
         icon,

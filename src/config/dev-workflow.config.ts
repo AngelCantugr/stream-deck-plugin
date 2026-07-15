@@ -17,11 +17,21 @@ export interface AppLauncherConfig {
     readonly launch: LaunchMethod;
 }
 
+// Optional cmux sidebar feedback for a long-running command: shows a
+// status pill on the given cmux workspace while the command runs, cleared
+// (or flipped to ok/failed) when it finishes. See src/utils/cmux.ts.
+export interface CmuxStatusConfig {
+    readonly workspace: string;
+    readonly label: string;
+    readonly color?: `#${string}`;
+}
+
 export interface ShellCommandConfig {
     readonly id: string;
     readonly label: string;
     readonly command: string;
     readonly runIn: "background" | "terminal";
+    readonly cmuxStatus?: CmuxStatusConfig;
 }
 
 export interface TmuxSessionConfig {
@@ -37,6 +47,7 @@ export interface ScriptConfig {
     readonly scriptName: string;
     readonly interpreter: "bash" | "python3";
     readonly args?: readonly string[];
+    readonly cmuxStatus?: CmuxStatusConfig;
 }
 
 export interface StatusSourceConfig {
@@ -54,6 +65,32 @@ export interface StatusSourceConfig {
         readonly args?: readonly string[];
     };
 }
+
+// ─── cmux Workflows ──────────────────────────────────────────────────────────
+//
+// Drives cmux directly via src/utils/cmux.ts (Unix-socket CLI) instead of
+// tmux + AppleScript. Two kinds:
+//   "skill"    → find-or-create a named cmux workspace running `claude`,
+//                send it a marketplace skill slash-command.
+//   "worktree" → invoke the user's existing worktree+agent launcher
+//                (~/.config/cmux/bin/cmux-worktree-launch), same script
+//                already wired into cmux's own plus-button menu.
+
+export type CmuxWorkflowConfig =
+    | {
+          readonly id: string;
+          readonly label: string;
+          readonly kind: "skill";
+          readonly workspace: string;
+          readonly skill: string;
+      }
+    | {
+          readonly id: string;
+          readonly label: string;
+          readonly kind: "worktree";
+          readonly base: "default" | "current";
+          readonly agent: "shell" | "claude" | "codex" | "pair";
+      };
 
 // ─── App Launchers ───────────────────────────────────────────────────────────
 //
@@ -133,8 +170,19 @@ export const SHELL_COMMANDS: readonly ShellCommandConfig[] = [
     { id: "git-log",     label: "git log",   command: "git log --oneline -15",      runIn: "terminal" },
     { id: "git-diff",    label: "git diff",  command: "git diff",                   runIn: "terminal" },
     { id: "git-pull",    label: "git pull",  command: "git pull",                   runIn: "terminal" },
-    { id: "npm-test",    label: "test",      command: "npm test",                   runIn: "terminal" },
-    { id: "npm-build",   label: "build",     command: "npm run build",              runIn: "terminal" },
+    // runIn: "background" (not "terminal") so the plugin actually awaits
+    // the process and can report real running/ok/failed state to the cmux
+    // sidebar — runInTerminal's AppleScript `do script` is fire-and-forget
+    // and returns before the command finishes, so status tracking on a
+    // "terminal" command would clear instantly instead of on completion.
+    {
+        id: "npm-test", label: "test", command: "npm test", runIn: "background",
+        cmuxStatus: { workspace: "Code", label: "test", color: "#ff9500" },
+    },
+    {
+        id: "npm-build", label: "build", command: "npm run build", runIn: "background",
+        cmuxStatus: { workspace: "Code", label: "build", color: "#ff9500" },
+    },
     { id: "npm-dev",     label: "dev",       command: "npm run dev",                runIn: "terminal" },
     { id: "docker-ps",   label: "docker",    command: "docker ps",                  runIn: "terminal" },
     { id: "k8s-ctx",     label: "k8s ctx",   command: "kubectl config get-contexts", runIn: "terminal" },
@@ -172,190 +220,59 @@ export const SCRIPTS: readonly ScriptConfig[] = [
         scriptName: "launch-tmux.sh",
         interpreter: "bash",
     },
+];
 
-    // Claude Desktop profile — Cowork page. Sends a marketplace skill into
-    // the "cowork" tmux session (typed into a live `claude` REPL if one's
-    // already running there, otherwise starts `claude` fresh with it).
-    // See docs/claude-desktop-profile.md for the Folder/Profile layout.
-    {
-        id: "skill-team-status",
-        label: "Team St",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/dev-team:team-status", "cmux Nightly"],
-    },
-    {
-        id: "skill-po-status",
-        label: "PO St",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/product-ownership:status", "cmux Nightly"],
-    },
-    {
-        id: "skill-gh-status",
-        label: "GH St",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/github-project-management:status", "cmux Nightly"],
-    },
-    {
-        id: "skill-gh-daily",
-        label: "GH Daily",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/github-project-management:daily-status", "cmux Nightly"],
-    },
+export const CMUX_WORKFLOWS: readonly CmuxWorkflowConfig[] = [
+    // Claude Desktop profile — Cowork page. Finds or creates the "Cowork"
+    // cmux workspace (running `claude`) and sends it a marketplace skill.
+    // See docs/claude-desktop-profile.md for the page layout.
+    { id: "skill-team-status", label: "Team St", kind: "skill", workspace: "Cowork", skill: "/dev-team:team-status" },
+    { id: "skill-po-status", label: "PO St", kind: "skill", workspace: "Cowork", skill: "/product-ownership:status" },
+    { id: "skill-gh-status", label: "GH St", kind: "skill", workspace: "Cowork", skill: "/github-project-management:status" },
+    { id: "skill-gh-daily", label: "GH Daily", kind: "skill", workspace: "Cowork", skill: "/github-project-management:daily-status" },
 
-    // Claude Desktop profile — Code page. Sends a marketplace skill into
-    // the "code" tmux session, same reuse-or-start behavior as above.
-    {
-        id: "skill-create-pr",
-        label: "New PR",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/pr-workflow:create-pr", "cmux Nightly"],
-    },
-    {
-        id: "skill-commit-pr-mon",
-        label: "Push PR",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/pr-workflow:commit-push-pr-monitor", "cmux Nightly"],
-    },
-    {
-        id: "skill-clean-audit",
-        label: "CC Audit",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/clean-code:audit", "cmux Nightly"],
-    },
-    {
-        id: "skill-watch-issues",
-        label: "Watch Is",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/engineering-core:watch-issues", "cmux Nightly"],
-    },
-    {
-        id: "skill-devbasic-stat",
-        label: "Dev Stat",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/dev-basic:status", "cmux Nightly"],
-    },
-    {
-        id: "skill-devbasic-cfg",
-        label: "Dev Cfg",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/dev-basic:configure", "cmux Nightly"],
-    },
+    // Claude Desktop profile — Code page. Finds or creates the "Code"
+    // cmux workspace, same reuse-or-start behavior as above.
+    { id: "skill-create-pr", label: "New PR", kind: "skill", workspace: "Code", skill: "/pr-workflow:create-pr" },
+    { id: "skill-commit-pr-mon", label: "Push PR", kind: "skill", workspace: "Code", skill: "/pr-workflow:commit-push-pr-monitor" },
+    { id: "skill-clean-audit", label: "CC Audit", kind: "skill", workspace: "Code", skill: "/clean-code:audit" },
+    { id: "skill-watch-issues", label: "Watch Is", kind: "skill", workspace: "Code", skill: "/engineering-core:watch-issues" },
+    { id: "skill-devbasic-stat", label: "Dev Stat", kind: "skill", workspace: "Code", skill: "/dev-basic:status" },
+    { id: "skill-devbasic-cfg", label: "Dev Cfg", kind: "skill", workspace: "Code", skill: "/dev-basic:configure" },
 
-    // cmux profile — orchestration skills into the "code"/"cowork" sessions.
-    {
-        id: "skill-dispatch",
-        label: "Dispatch",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/cmux-flow:dispatch", "cmux Nightly"],
-    },
-    {
-        id: "skill-land",
-        label: "Land",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/cmux-flow:land", "cmux Nightly"],
-    },
-    {
-        id: "skill-pair",
-        label: "Pair",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/cmux-flow:pair", "cmux Nightly"],
-    },
-    {
-        id: "skill-agents-status",
-        label: "Agents",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/cmux-flow:agents-status", "cmux Nightly"],
-    },
-    {
-        id: "skill-agent-inbox",
-        label: "Inbox",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/agent-results:agent-inbox", "cmux Nightly"],
-    },
-    {
-        id: "skill-session-pilot",
-        label: "Pilot",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["cowork", "/workflow-orchestration:session-pilot", "cmux Nightly"],
-    },
+    // cmux profile — orchestration skills into the Code/Cowork workspaces.
+    { id: "skill-dispatch", label: "Dispatch", kind: "skill", workspace: "Code", skill: "/cmux-flow:dispatch" },
+    { id: "skill-land", label: "Land", kind: "skill", workspace: "Code", skill: "/cmux-flow:land" },
+    { id: "skill-pair", label: "Pair", kind: "skill", workspace: "Code", skill: "/cmux-flow:pair" },
+    { id: "skill-agents-status", label: "Agents", kind: "skill", workspace: "Cowork", skill: "/cmux-flow:agents-status" },
+    { id: "skill-agent-inbox", label: "Inbox", kind: "skill", workspace: "Code", skill: "/agent-results:agent-inbox" },
+    { id: "skill-session-pilot", label: "Pilot", kind: "skill", workspace: "Cowork", skill: "/workflow-orchestration:session-pilot" },
 
     // PR lifecycle — the unwired-but-high-value pr-workflow skills.
-    {
-        id: "skill-fix-checks",
-        label: "Fix CI",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/pr-workflow:fix-pr-checks", "cmux Nightly"],
-    },
-    {
-        id: "skill-address-comments",
-        label: "PR Cmts",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/pr-workflow:address-pr-comments", "cmux Nightly"],
-    },
-    {
-        id: "skill-merge-mon",
-        label: "Merge",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/pr-workflow:merge-pr-monitor", "cmux Nightly"],
-    },
+    { id: "skill-fix-checks", label: "Fix CI", kind: "skill", workspace: "Code", skill: "/pr-workflow:fix-pr-checks" },
+    { id: "skill-address-comments", label: "PR Cmts", kind: "skill", workspace: "Code", skill: "/pr-workflow:address-pr-comments" },
+    { id: "skill-merge-mon", label: "Merge", kind: "skill", workspace: "Code", skill: "/pr-workflow:merge-pr-monitor" },
 
     // Issue → implementation loop.
-    {
-        id: "skill-create-issue",
-        label: "New Issue",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/engineering-core:create-issue", "cmux Nightly"],
-    },
-    {
-        id: "skill-implement-issue",
-        label: "Impl Issue",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/engineering-core:implement-issue", "cmux Nightly"],
-    },
-    {
-        id: "skill-sdd",
-        label: "SDD",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/spec-kit-dev:sdd", "cmux Nightly"],
-    },
+    { id: "skill-create-issue", label: "New Issue", kind: "skill", workspace: "Code", skill: "/engineering-core:create-issue" },
+    { id: "skill-implement-issue", label: "Impl Issue", kind: "skill", workspace: "Code", skill: "/engineering-core:implement-issue" },
+    { id: "skill-sdd", label: "SDD", kind: "skill", workspace: "Code", skill: "/spec-kit-dev:sdd" },
 
     // Codex second opinions.
-    {
-        id: "skill-codex-review",
-        label: "Cdx Rev",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/codex-review:quick-review", "cmux Nightly"],
-    },
-    {
-        id: "skill-second-opinion",
-        label: "2nd Op",
-        scriptName: "send-skill-to-session.sh",
-        interpreter: "bash",
-        args: ["code", "/engineering-core:second-opinion", "cmux Nightly"],
-    },
+    { id: "skill-codex-review", label: "Cdx Rev", kind: "skill", workspace: "Code", skill: "/codex-review:quick-review" },
+    { id: "skill-second-opinion", label: "2nd Op", kind: "skill", workspace: "Code", skill: "/engineering-core:second-opinion" },
+
+    // Worktree + agent launch — delegates to ~/.config/cmux/bin/cmux-worktree-launch,
+    // the same script already wired into cmux's own plus-button menu
+    // (see ~/GithubRepositories/angelcantugr/dotenv/stow-packages/cmux/.config/cmux/cmux.json).
+    { id: "wt-new-shell", label: "WT New", kind: "worktree", base: "default", agent: "shell" },
+    { id: "wt-branch-shell", label: "WT Branch", kind: "worktree", base: "current", agent: "shell" },
+    { id: "wt-new-claude", label: "WT+Claude", kind: "worktree", base: "default", agent: "claude" },
+    { id: "wt-new-codex", label: "WT+Codex", kind: "worktree", base: "default", agent: "codex" },
+    { id: "wt-new-pair", label: "WT Pair", kind: "worktree", base: "default", agent: "pair" },
+    { id: "wt-branch-claude", label: "Exp+Claude", kind: "worktree", base: "current", agent: "claude" },
+    { id: "wt-branch-codex", label: "Exp+Codex", kind: "worktree", base: "current", agent: "codex" },
+    { id: "wt-branch-pair", label: "Exp Pair", kind: "worktree", base: "current", agent: "pair" },
 ];
 
 // ─── Status Sources ──────────────────────────────────────────────────────────
@@ -418,4 +335,8 @@ export function findScript(id: string): ScriptConfig | undefined {
 
 export function findStatusSource(id: string): StatusSourceConfig | undefined {
     return STATUS_SOURCES.find((s) => s.id === id);
+}
+
+export function findCmuxWorkflow(id: string): CmuxWorkflowConfig | undefined {
+    return CMUX_WORKFLOWS.find((w) => w.id === id);
 }

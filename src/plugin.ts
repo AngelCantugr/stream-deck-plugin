@@ -1,5 +1,6 @@
 import streamDeck from "@elgato/streamdeck";
 import { AppLauncher } from "./actions/app-launcher";
+import { CmuxWorkflow } from "./actions/cmux-workflow";
 import { ScriptRunner } from "./actions/script-runner";
 import { ShellCommand } from "./actions/shell-command";
 import { StatusTile } from "./actions/status-tile";
@@ -11,6 +12,7 @@ streamDeck.actions.registerAction(new ShellCommand());
 streamDeck.actions.registerAction(new TmuxSession());
 streamDeck.actions.registerAction(new ScriptRunner());
 streamDeck.actions.registerAction(new StatusTile());
+streamDeck.actions.registerAction(new CmuxWorkflow());
 
 // Push doorbell for status tiles. External scripts (agent-result-write,
 // notify-input-needed, git hooks, …) force an instant repaint with:
