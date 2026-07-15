@@ -1,5 +1,18 @@
 # Hand-Authoring Stream Deck Profiles
 
+> **2026-07-14 — this schema is now encoded in a generator.** Everything
+> below is automated by `src/profiles/` (`npm run profiles`); write a
+> `ProfileSpec` in `src/profiles/definitions/` instead of hand-writing
+> JSON. Two additional facts learned while building it:
+> **(1) UUID case matters** — the app serializes UUIDs lowercase inside
+> manifest JSON and uppercase in directory names; follow that convention.
+> **(2) Auto-switch can't be verified from a background shell** —
+> `osascript`/`open` activations don't produce real focus changes, so a
+> generated profile's `AppIdentifier` behavior needs a human (or true
+> foreground activation) to confirm. Drop-in registration itself works:
+> new bundles written while the app is quit appear in the profile list on
+> next launch, no GUI import needed (re-confirmed on app 7.5.0).
+
 An undocumented but working method for creating a Stream Deck Profile
 (pages, folders, and keys) directly as files on disk, instead of only via
 drag-and-drop in the Stream Deck app. This is how the actual "Claude
@@ -287,9 +300,13 @@ worked example (Chat/Cowork/Code as pages 2/3/4, each triggered from page
   update.
 - **No live directory watch confirmed.** Changes need an app restart to
   take effect (§6).
-- **Whether Auto-Switch (per-app) settings live in this same schema is
-  still unverified** — none of the profiles inspected while building this
-  had Auto-Switch configured, so that piece of the schema is unknown.
+- **Auto-Switch (per-app) lives in this same schema — confirmed.** Setting
+  `"AppIdentifier": "/Applications/Claude.app"` in the top-level
+  `manifest.json` (§2) is exactly what the Stream Deck GUI writes, and the
+  shipped Claude Desktop profile uses it successfully — see
+  [claude-desktop-profile.md §5](claude-desktop-profile.md#5-auto-switch-profile-config).
+  Still unknown: how (or whether) *multiple* apps can share one profile's
+  Auto-Switch; no multi-app `AppIdentifier` encoding has been found.
 - Prefer the officially supported path — build once in the GUI, export as
   `.streamDeckProfile`, bundle via `manifest.json`'s `Profiles` array (see
   [claude-desktop-profile.md §7](claude-desktop-profile.md#7-bundling-the-built-profile-with-the-plugin))

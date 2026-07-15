@@ -50,6 +50,22 @@ export interface ScriptConfig {
     readonly cmuxStatus?: CmuxStatusConfig;
 }
 
+export interface StatusSourceConfig {
+    readonly id: string;
+    readonly label: string;
+    // Relative to .sdPlugin/scripts/ — e.g. "status/agent-inbox.sh".
+    // Contract: last non-empty stdout line is JSON
+    // {"title": string, "value": string, "state": "ok"|"warn"|"alert"|"off", "hint"?: string}
+    readonly scriptName: string;
+    readonly args?: readonly string[];
+    readonly intervalSec: number;
+    // Optional key-press behavior; the tile always force-refreshes after it runs.
+    readonly pressScript?: {
+        readonly scriptName: string;
+        readonly args?: readonly string[];
+    };
+}
+
 // ─── cmux Workflows ──────────────────────────────────────────────────────────
 //
 // Drives cmux directly via src/utils/cmux.ts (Unix-socket CLI) instead of
@@ -224,6 +240,28 @@ export const CMUX_WORKFLOWS: readonly CmuxWorkflowConfig[] = [
     { id: "skill-devbasic-stat", label: "Dev Stat", kind: "skill", workspace: "Code", skill: "/dev-basic:status" },
     { id: "skill-devbasic-cfg", label: "Dev Cfg", kind: "skill", workspace: "Code", skill: "/dev-basic:configure" },
 
+    // cmux profile — orchestration skills into the Code/Cowork workspaces.
+    { id: "skill-dispatch", label: "Dispatch", kind: "skill", workspace: "Code", skill: "/cmux-flow:dispatch" },
+    { id: "skill-land", label: "Land", kind: "skill", workspace: "Code", skill: "/cmux-flow:land" },
+    { id: "skill-pair", label: "Pair", kind: "skill", workspace: "Code", skill: "/cmux-flow:pair" },
+    { id: "skill-agents-status", label: "Agents", kind: "skill", workspace: "Cowork", skill: "/cmux-flow:agents-status" },
+    { id: "skill-agent-inbox", label: "Inbox", kind: "skill", workspace: "Code", skill: "/agent-results:agent-inbox" },
+    { id: "skill-session-pilot", label: "Pilot", kind: "skill", workspace: "Cowork", skill: "/workflow-orchestration:session-pilot" },
+
+    // PR lifecycle — the unwired-but-high-value pr-workflow skills.
+    { id: "skill-fix-checks", label: "Fix CI", kind: "skill", workspace: "Code", skill: "/pr-workflow:fix-pr-checks" },
+    { id: "skill-address-comments", label: "PR Cmts", kind: "skill", workspace: "Code", skill: "/pr-workflow:address-pr-comments" },
+    { id: "skill-merge-mon", label: "Merge", kind: "skill", workspace: "Code", skill: "/pr-workflow:merge-pr-monitor" },
+
+    // Issue → implementation loop.
+    { id: "skill-create-issue", label: "New Issue", kind: "skill", workspace: "Code", skill: "/engineering-core:create-issue" },
+    { id: "skill-implement-issue", label: "Impl Issue", kind: "skill", workspace: "Code", skill: "/engineering-core:implement-issue" },
+    { id: "skill-sdd", label: "SDD", kind: "skill", workspace: "Code", skill: "/spec-kit-dev:sdd" },
+
+    // Codex second opinions.
+    { id: "skill-codex-review", label: "Cdx Rev", kind: "skill", workspace: "Code", skill: "/codex-review:quick-review" },
+    { id: "skill-second-opinion", label: "2nd Op", kind: "skill", workspace: "Code", skill: "/engineering-core:second-opinion" },
+
     // Worktree + agent launch — delegates to ~/.config/cmux/bin/cmux-worktree-launch,
     // the same script already wired into cmux's own plus-button menu
     // (see ~/GithubRepositories/angelcantugr/dotenv/stow-packages/cmux/.config/cmux/cmux.json).
@@ -235,6 +273,46 @@ export const CMUX_WORKFLOWS: readonly CmuxWorkflowConfig[] = [
     { id: "wt-branch-claude", label: "Exp+Claude", kind: "worktree", base: "current", agent: "claude" },
     { id: "wt-branch-codex", label: "Exp+Codex", kind: "worktree", base: "current", agent: "codex" },
     { id: "wt-branch-pair", label: "Exp Pair", kind: "worktree", base: "current", agent: "pair" },
+];
+
+// ─── Status Sources ──────────────────────────────────────────────────────────
+//
+// Pluggable feeds for the Status Tile action — keys as displays, not buttons.
+// Each source is a script under .sdPlugin/scripts/ polled on an interval
+// while at least one tile showing it is visible. External events can force
+// an instant refresh via:
+//   open "streamdeck://plugins/message/com.angelcantugr.devworkflow/refresh?source=<id>&streamdeck=hidden"
+
+export const STATUS_SOURCES: readonly StatusSourceConfig[] = [
+    {
+        id: "agent-inbox",
+        label: "Agent Inbox",
+        scriptName: "status/agent-inbox.sh",
+        intervalSec: 30,
+        // Press: mark inbox read + open the agent-inbox skill in the "code" session.
+        pressScript: { scriptName: "status/agent-inbox-open.sh" },
+    },
+    {
+        id: "tmux-attention",
+        label: "tmux Attention",
+        scriptName: "status/tmux-attention.sh",
+        intervalSec: 15,
+    },
+    {
+        id: "pr-checks",
+        label: "PR Checks",
+        scriptName: "status/gh-pr-checks.sh",
+        // Change the repo arg to whichever repo's CI matters most right now.
+        args: [`${process.env.HOME}/GithubRepositories/angelcantugr/stream-deck-plugin`],
+        intervalSec: 60,
+    },
+    {
+        id: "claude-session-code",
+        label: "Claude REPL (code)",
+        scriptName: "status/claude-session.sh",
+        args: ["code"],
+        intervalSec: 15,
+    },
 ];
 
 // ─── Lookup helpers ───────────────────────────────────────────────────────────
@@ -253,6 +331,10 @@ export function findSession(id: string): TmuxSessionConfig | undefined {
 
 export function findScript(id: string): ScriptConfig | undefined {
     return SCRIPTS.find((s) => s.id === id);
+}
+
+export function findStatusSource(id: string): StatusSourceConfig | undefined {
+    return STATUS_SOURCES.find((s) => s.id === id);
 }
 
 export function findCmuxWorkflow(id: string): CmuxWorkflowConfig | undefined {

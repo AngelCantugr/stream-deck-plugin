@@ -32,8 +32,10 @@ here:
   three native primitives, which are the same building blocks the user's
   own pre-existing "AI Learning" profile already used successfully.
 - `com.elgato.streamdeck.page.goto/next/previous` (§3) is a lighter-weight
-  alternative to Folders for flat multi-page layouts — worth knowing about
-  even though this plugin currently uses Folders for Chat/Cowork/Code.
+  alternative to Folders for flat multi-page layouts — and it is what the
+  Claude Desktop profile actually uses for Chat/Cowork/Code. Folders were
+  tried first and rejected because they don't compose with Multi Actions
+  (see §2).
 
 ---
 

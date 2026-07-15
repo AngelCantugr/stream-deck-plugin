@@ -4,5 +4,13 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
     eslint.configs.recommended,
     ...tseslint.configs.recommended,
-    { ignores: ["com.angelcantugr.devworkflow.sdPlugin/bin/"] }
+    { ignores: ["com.angelcantugr.devworkflow.sdPlugin/bin/"] },
+    {
+        rules: {
+            "@typescript-eslint/no-unused-vars": [
+                "error",
+                { varsIgnorePattern: "^_", argsIgnorePattern: "^_", destructuredArrayIgnorePattern: "^_" },
+            ],
+        },
+    }
 );

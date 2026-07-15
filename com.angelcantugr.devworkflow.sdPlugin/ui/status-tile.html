@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 13px;
+            color: #c8c8c8;
+            background: transparent;
+            padding: 12px;
+        }
+        label {
+            display: block;
+            margin: 0 0 4px;
+            font-size: 11px;
+            color: #8c8c8c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select {
+            width: 100%;
+            padding: 6px 8px;
+            background: #1a1a1a;
+            border: 1px solid #3c3c3c;
+            border-radius: 4px;
+            color: #c8c8c8;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        select:focus { outline: none; border-color: #5a5a5a; }
+        .preview {
+            margin-top: 8px;
+            padding: 6px 8px;
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: 11px;
+            color: #6ee7b7;
+            min-height: 24px;
+        }
+        .hint {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+            line-height: 1.5;
+        }
+        code { color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <label>Status Source</label>
+    <select id="sourceId">
+        <option value="">— select source —</option>
+    </select>
+    <div class="preview" id="preview"></div>
+    <p class="hint">
+        Add sources in <code>src/config/dev-workflow.config.ts</code> → STATUS_SOURCES<br>
+        Source scripts: <code>.sdPlugin/scripts/status/</code><br>
+        Force refresh: <code>streamdeck://plugins/message/com.angelcantugr.devworkflow/refresh?source=&lt;id&gt;</code>
+    </p>
+
+    <script>
+        let ws = null, actionCtx = null, settings = {}, sourceMap = {};
+
+        function connectElgatoStreamDeckSocket(port, uuid, regEvent, info, actionInfo) {
+            actionCtx = JSON.parse(actionInfo);
+            settings = actionCtx.payload.settings || {};
+
+            ws = new WebSocket("ws://127.0.0.1:" + port);
+            ws.onopen = () => ws.send(JSON.stringify({ event: regEvent, uuid }));
+            ws.onmessage = (e) => {
+                const d = JSON.parse(e.data);
+                if (d.event === "sendToPropertyInspector" && d.payload.type === "statusSourceList") {
+                    const sel = document.getElementById("sourceId");
+                    sel.innerHTML = '<option value="">— select source —</option>';
+                    sourceMap = {};
+                    d.payload.sources.forEach((s) => {
+                        sourceMap[s.id] = s;
+                        const opt = document.createElement("option");
+                        opt.value = s.id;
+                        opt.textContent = `${s.label} (every ${s.intervalSec}s)`;
+                        sel.appendChild(opt);
+                    });
+                    sel.value = settings.sourceId || "";
+                    updatePreview(settings.sourceId);
+                }
+                if (d.event === "didReceiveSettings") {
+                    settings = d.payload.settings;
+                    document.getElementById("sourceId").value = settings.sourceId || "";
+                    updatePreview(settings.sourceId);
+                }
+            };
+        }
+
+        function updatePreview(id) {
+            const s = sourceMap[id];
+            document.getElementById("preview").textContent = s
+                ? `bash scripts/${s.scriptName} — poll ${s.intervalSec}s`
+                : "";
+        }
+
+        document.getElementById("sourceId").addEventListener("change", (e) => {
+            settings.sourceId = e.target.value;
+            updatePreview(settings.sourceId);
+            ws.send(JSON.stringify({
+                event: "setSettings",
+                context: actionCtx.context,
+                payload: settings,
+            }));
+        });
+    </script>
+</body>
+</html>

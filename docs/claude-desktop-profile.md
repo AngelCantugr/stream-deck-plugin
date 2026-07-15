@@ -1,5 +1,18 @@
 # Claude Desktop Stream Deck Profile
 
+> **2026-07-14 — this profile is now GENERATED.** The layout described here
+> was migrated into the profiles-as-code generator:
+> `src/profiles/definitions/claude-desktop.ts`, pinned to the live profile
+> UUID `9e5a675d-…` so `npm run profiles` updates it in place. The generated
+> version also fixed every skill key (they referenced the long-renamed
+> `…devworkflow.cmux-workflow` action UUID and were silently dead), removed
+> a duplicate Plan Mode chord, and added live status tiles. Hand-editing
+> the bundle or rebuilding it in the GUI is superseded — edit the
+> definition and regenerate (`npm run profiles:apply -- --only claude-desktop`,
+> then `npm run profiles -- --bundle claude-desktop` to refresh the bundled
+> artifact). Historical context below is still accurate about the schema
+> discoveries and design decisions.
+
 A profile for Claude Desktop with a main page plus 3 sibling **Pages** —
 Chat, Cowork, Code — plus a second profile that auto-switches in whenever
 a terminal app is frontmost.
@@ -127,9 +140,11 @@ pattern to the `cmux Workflow` action — see §6 and
 | 4,0 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 3 | Model: Sonnet 5 |
 | 4,1 | Multi Action | Hotkey ⌘⇧I → Delay → Hotkey 4 | Model: Haiku 4.5 |
 
-(`2,0` is occupied by a manual test key the user added to confirm the
-`col,row` convention — a duplicate "Plan Mode" title; harmless, safe to
-delete or repurpose.)
+(`2,0` was occupied by a manual test key the user added to confirm the
+`col,row` convention — a duplicate "Plan Mode" title. It has been removed
+from the bundled `Claude Desktop.streamDeckProfile`; it may still exist in
+the live installed copy under `ProfilesV3/` until the bundled profile is
+reinstalled.)
 
 Same chord pattern for model switching: Cmd+Shift+I opens the model
 menu, then a bare number (1–4) picks one. Built the same way as the
@@ -324,7 +339,7 @@ profile (§3) looks right:**
    "Profiles": [
        {
            "Name": "Claude Desktop",
-           "DeviceType": 0,
+           "DeviceType": 2,
            "Readonly": false,
            "DontAutoSwitchWhenInstalled": false,
            "AutoInstall": true
@@ -333,6 +348,11 @@ profile (§3) looks right:**
    ```
    `AutoInstall: true` means it's offered for install automatically rather
    than waiting for the plugin to first try switching to it.
+   `DeviceType` uses the manifest enum from
+   [sdk-capabilities-reference.md](sdk-capabilities-reference.md) — `2` is
+   Stream Deck XL, this profile's target device. (An earlier version of
+   this entry shipped with `0`, the original 5×3 Stream Deck, which targets
+   the wrong device class.)
 4. Rebuild (`npm run build`) and reinstall the plugin to pick up the new
    bundled profile.
 
@@ -354,6 +374,25 @@ is a real but partial signal, not full confirmation the app will install
 this file the same way a GUI export would. If it doesn't behave correctly
 on a fresh plugin install, exporting once via the GUI and diffing against
 this file is the fallback.
+
+**Re-zip checklist** (whenever regenerating the bundled
+`.streamDeckProfile` from the live `.sdProfile` directory):
+
+1. `Pages.Current` in the top-level `manifest.json` is a *mutable
+   last-viewed pointer* — the Stream Deck app rewrites it every time you
+   change pages, so a naive zip captures whatever page happened to be on
+   screen. Set it to the main page UUID
+   (`85fd1f42-6a10-42d1-9408-b501a0a19b39`) before zipping so a fresh
+   install opens on the hub page. (`Default` stays `112db582-…`, the empty
+   page, and must differ from `Current` — see
+   [profile-authoring-reference.md §2](profile-authoring-reference.md).)
+2. Prune any manual test keys added while experimenting on the live
+   profile (the `2,0` "Plan Mode" duplicate was one such leftover).
+3. Confirm the `Profiles[]` entry in the *plugin* manifest still says
+   `DeviceType: 2` (XL).
+4. Zip from *inside* the bundle directory so `manifest.json` sits at the
+   archive root: `zip -r -X "Claude Desktop.streamDeckProfile"
+   manifest.json Images Profiles`.
 
 **Runtime switching.** The SDK also exposes
 `streamDeck.profiles.switchToProfile(deviceId, "Claude Desktop")` for
