@@ -59,9 +59,11 @@ function sh(cmd: string, cmdArgs: string[], opts: { cwd?: string; ignoreError?: 
     }
 }
 
-function streamDeckPids(): string[] {
-    const out = sh("pgrep", ["-f", "Stream Deck.app/Contents/MacOS/Stream Deck"], { ignoreError: true });
-    return out.split("\n").filter(Boolean);
+function isStreamDeckRunning(): boolean {
+    // AppleScript's process check avoids the false positives `pgrep -f` risks
+    // matching against the app's own path string (an open terminal/editor tab).
+    const out = sh("osascript", ["-e", 'application "Elgato Stream Deck" is running'], { ignoreError: true });
+    return out.trim() === "true";
 }
 
 async function quitStreamDeck(): Promise<void> {
@@ -69,7 +71,7 @@ async function quitStreamDeck(): Promise<void> {
     // worked — never trust the exit status, verify the process is gone.
     sh("osascript", ["-e", 'quit app "Elgato Stream Deck"'], { ignoreError: true });
     for (let i = 0; i < 20; i++) {
-        if (streamDeckPids().length === 0) return;
+        if (!isStreamDeckRunning()) return;
         await new Promise((r) => setTimeout(r, 500));
     }
     throw new Error("Stream Deck app did not quit within 10s — aborting before touching ProfilesV3");

@@ -84,7 +84,9 @@ export function parseStatusPayload(stdout: string): StatusPayload {
     if (!last) throw new Error("status script produced no output");
 
     const raw: unknown = JSON.parse(last);
-    if (typeof raw !== "object" || raw === null) throw new Error("status payload is not an object");
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        throw new Error("status payload is not an object");
+    }
     const obj = raw as Record<string, unknown>;
 
     const title = typeof obj.title === "string" ? obj.title : "";

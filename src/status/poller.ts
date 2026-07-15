@@ -25,6 +25,7 @@ interface SourceEntry {
     targets: Map<string, TileTarget>;
     timer?: NodeJS.Timeout;
     lastImage?: string;
+    polling?: boolean;
 }
 
 const log = streamDeck.logger.createScope("StatusPoller");
@@ -70,8 +71,9 @@ class StatusPoller {
 
     private async poll(sourceId: string): Promise<void> {
         const entry = this.sources.get(sourceId);
-        if (!entry || entry.targets.size === 0) return;
+        if (!entry || entry.targets.size === 0 || entry.polling) return;
 
+        entry.polling = true;
         let image: string;
         try {
             const { stdout } = await runScript(
@@ -86,6 +88,8 @@ class StatusPoller {
         } catch (err) {
             log.error(`Status source ${sourceId} failed`, err);
             image = renderErrorTile(entry.config.label);
+        } finally {
+            entry.polling = false;
         }
 
         entry.lastImage = image;
