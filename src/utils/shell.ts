@@ -41,8 +41,9 @@ export async function runInTerminal(command: string): Promise<void> {
 export async function runScript(
     scriptName: string,
     interpreter: "bash" | "python3",
-    args: readonly string[] = []
+    args: readonly string[] = [],
+    opts: { timeoutMs?: number } = {}
 ): Promise<ExecResult> {
     const scriptPath = join(PLUGIN_DIR, "scripts", scriptName);
-    return execFileAsync(interpreter, [scriptPath, ...args]);
+    return execFileAsync(interpreter, [scriptPath, ...args], { timeout: opts.timeoutMs });
 }

@@ -25,7 +25,7 @@
     "Profiles": [
         {
             "Name": "Claude Desktop",
-            "DeviceType": 0,
+            "DeviceType": 2,
             "Readonly": false,
             "DontAutoSwitchWhenInstalled": false,
             "AutoInstall": true
@@ -92,6 +92,22 @@
             "States": [
                 {
                     "Image": "imgs/actions/script-runner/key",
+                    "TitleAlignment": "bottom"
+                }
+            ]
+        },
+        {
+            "Name": "Status Tile",
+            "UUID": "com.angelcantugr.devworkflow.status-tile",
+            "Icon": "imgs/actions/status-tile/icon",
+            "Tooltip": "Live status display polled from a script source (agent inbox, tmux attention, PR checks). Sources configured in src/config/dev-workflow.config.ts.",
+            "PropertyInspectorPath": "ui/status-tile.html",
+            "Controllers": [
+                "Keypad"
+            ],
+            "States": [
+                {
+                    "Image": "imgs/actions/status-tile/key",
                     "TitleAlignment": "bottom"
                 }
             ]

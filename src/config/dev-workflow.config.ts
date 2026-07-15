@@ -39,6 +39,22 @@ export interface ScriptConfig {
     readonly args?: readonly string[];
 }
 
+export interface StatusSourceConfig {
+    readonly id: string;
+    readonly label: string;
+    // Relative to .sdPlugin/scripts/ — e.g. "status/agent-inbox.sh".
+    // Contract: last non-empty stdout line is JSON
+    // {"title": string, "value": string, "state": "ok"|"warn"|"alert"|"off", "hint"?: string}
+    readonly scriptName: string;
+    readonly args?: readonly string[];
+    readonly intervalSec: number;
+    // Optional key-press behavior; the tile always force-refreshes after it runs.
+    readonly pressScript?: {
+        readonly scriptName: string;
+        readonly args?: readonly string[];
+    };
+}
+
 // ─── App Launchers ───────────────────────────────────────────────────────────
 //
 // launch.type options:
@@ -234,6 +250,152 @@ export const SCRIPTS: readonly ScriptConfig[] = [
         interpreter: "bash",
         args: ["code", "/dev-basic:configure", "cmux Nightly"],
     },
+
+    // cmux profile — orchestration skills into the "code"/"cowork" sessions.
+    {
+        id: "skill-dispatch",
+        label: "Dispatch",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/cmux-flow:dispatch", "cmux Nightly"],
+    },
+    {
+        id: "skill-land",
+        label: "Land",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/cmux-flow:land", "cmux Nightly"],
+    },
+    {
+        id: "skill-pair",
+        label: "Pair",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/cmux-flow:pair", "cmux Nightly"],
+    },
+    {
+        id: "skill-agents-status",
+        label: "Agents",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/cmux-flow:agents-status", "cmux Nightly"],
+    },
+    {
+        id: "skill-agent-inbox",
+        label: "Inbox",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/agent-results:agent-inbox", "cmux Nightly"],
+    },
+    {
+        id: "skill-session-pilot",
+        label: "Pilot",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["cowork", "/workflow-orchestration:session-pilot", "cmux Nightly"],
+    },
+
+    // PR lifecycle — the unwired-but-high-value pr-workflow skills.
+    {
+        id: "skill-fix-checks",
+        label: "Fix CI",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/pr-workflow:fix-pr-checks", "cmux Nightly"],
+    },
+    {
+        id: "skill-address-comments",
+        label: "PR Cmts",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/pr-workflow:address-pr-comments", "cmux Nightly"],
+    },
+    {
+        id: "skill-merge-mon",
+        label: "Merge",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/pr-workflow:merge-pr-monitor", "cmux Nightly"],
+    },
+
+    // Issue → implementation loop.
+    {
+        id: "skill-create-issue",
+        label: "New Issue",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/engineering-core:create-issue", "cmux Nightly"],
+    },
+    {
+        id: "skill-implement-issue",
+        label: "Impl Issue",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/engineering-core:implement-issue", "cmux Nightly"],
+    },
+    {
+        id: "skill-sdd",
+        label: "SDD",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/spec-kit-dev:sdd", "cmux Nightly"],
+    },
+
+    // Codex second opinions.
+    {
+        id: "skill-codex-review",
+        label: "Cdx Rev",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/codex-review:quick-review", "cmux Nightly"],
+    },
+    {
+        id: "skill-second-opinion",
+        label: "2nd Op",
+        scriptName: "send-skill-to-session.sh",
+        interpreter: "bash",
+        args: ["code", "/engineering-core:second-opinion", "cmux Nightly"],
+    },
+];
+
+// ─── Status Sources ──────────────────────────────────────────────────────────
+//
+// Pluggable feeds for the Status Tile action — keys as displays, not buttons.
+// Each source is a script under .sdPlugin/scripts/ polled on an interval
+// while at least one tile showing it is visible. External events can force
+// an instant refresh via:
+//   open "streamdeck://plugins/message/com.angelcantugr.devworkflow/refresh?source=<id>&streamdeck=hidden"
+
+export const STATUS_SOURCES: readonly StatusSourceConfig[] = [
+    {
+        id: "agent-inbox",
+        label: "Agent Inbox",
+        scriptName: "status/agent-inbox.sh",
+        intervalSec: 30,
+        // Press: mark inbox read + open the agent-inbox skill in the "code" session.
+        pressScript: { scriptName: "status/agent-inbox-open.sh" },
+    },
+    {
+        id: "tmux-attention",
+        label: "tmux Attention",
+        scriptName: "status/tmux-attention.sh",
+        intervalSec: 15,
+    },
+    {
+        id: "pr-checks",
+        label: "PR Checks",
+        scriptName: "status/gh-pr-checks.sh",
+        // Change the repo arg to whichever repo's CI matters most right now.
+        args: [`${process.env.HOME}/GithubRepositories/angelcantugr/stream-deck-plugin`],
+        intervalSec: 60,
+    },
+    {
+        id: "claude-session-code",
+        label: "Claude REPL (code)",
+        scriptName: "status/claude-session.sh",
+        args: ["code"],
+        intervalSec: 15,
+    },
 ];
 
 // ─── Lookup helpers ───────────────────────────────────────────────────────────
@@ -252,4 +414,8 @@ export function findSession(id: string): TmuxSessionConfig | undefined {
 
 export function findScript(id: string): ScriptConfig | undefined {
     return SCRIPTS.find((s) => s.id === id);
+}
+
+export function findStatusSource(id: string): StatusSourceConfig | undefined {
+    return STATUS_SOURCES.find((s) => s.id === id);
 }
