@@ -6,6 +6,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import { findCommand, SHELL_COMMANDS } from "../config/dev-workflow.config";
 import { exec, runInTerminal } from "../utils/shell";
+import { withStatus } from "../utils/cmux";
 
 type ShellCommandSettings = {
     configId?: string;
@@ -26,11 +27,13 @@ export class ShellCommand extends SingletonAction<ShellCommandSettings> {
         }
 
         try {
-            if (config.runIn === "terminal") {
-                await runInTerminal(config.command);
-            } else {
-                await exec(config.command);
-            }
+            await withStatus(config.cmuxStatus, async () => {
+                if (config.runIn === "terminal") {
+                    await runInTerminal(config.command);
+                } else {
+                    await exec(config.command);
+                }
+            });
             await ev.action.showOk();
         } catch (err) {
             streamDeck.logger.error(`Failed to run command ${config.id}`, err);

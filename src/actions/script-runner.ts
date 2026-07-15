@@ -6,6 +6,7 @@ import streamDeck, {
 } from "@elgato/streamdeck";
 import { findScript, SCRIPTS } from "../config/dev-workflow.config";
 import { runScript } from "../utils/shell";
+import { withStatus } from "../utils/cmux";
 
 type ScriptRunnerSettings = {
     configId?: string;
@@ -26,7 +27,9 @@ export class ScriptRunner extends SingletonAction<ScriptRunnerSettings> {
         }
 
         try {
-            await runScript(config.scriptName, config.interpreter, config.args ?? []);
+            await withStatus(config.cmuxStatus, () =>
+                runScript(config.scriptName, config.interpreter, config.args ?? [])
+            );
             await ev.action.showOk();
         } catch (err) {
             streamDeck.logger.error(`Failed to run script ${config.scriptName}`, err);
